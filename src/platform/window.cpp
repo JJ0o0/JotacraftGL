@@ -12,6 +12,16 @@ void Window::keyCallback(GLFWwindow* glfwWindow, int key, int scancode, int acti
     }
 }
 
+void Window::mouseButtonCallback(GLFWwindow* glfwWindow, int button, int action, int mods) {
+    Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
+
+    switch (action) {
+        case GLFW_PRESS:
+            if (window->WasMouseButtonPressed) window->WasMouseButtonPressed(button);
+            break;
+    }
+}
+
 void Window::mouseCallback(GLFWwindow* glfwWindow, double xpos, double ypos) {
     Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
 
@@ -44,6 +54,7 @@ Window::Window(const WindowProperties& properties)
 
     glfwSetWindowUserPointer(m_handle, this);
     glfwSetKeyCallback(m_handle, keyCallback);
+    glfwSetMouseButtonCallback(m_handle, mouseButtonCallback);
     glfwSetCursorPosCallback(m_handle, mouseCallback);
     glfwMakeContextCurrent(m_handle);
 
@@ -54,6 +65,7 @@ Window::Window(const WindowProperties& properties)
         return;
     }
     
+    glfwSetInputMode(m_handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glEnable(GL_DEPTH_TEST);
     glViewport(0, 0, m_properties.Width, m_properties.Height);
     glfwSwapInterval(1);
@@ -68,4 +80,9 @@ Window::~Window() {
     std::cout << "Destroying Window...\n";
     glfwDestroyWindow(m_handle);
     glfwTerminate();
+}
+
+void Window::ToggleMouseLock() {
+    if (!IsMouseLocked()) glfwSetInputMode(m_handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    else glfwSetInputMode(m_handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }

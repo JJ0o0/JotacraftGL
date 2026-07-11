@@ -1,31 +1,61 @@
 #include <application.hpp>
+#include <world/world.hpp>
+#include <graphics/mesher.hpp>
+#include <graphics/atlas_texture.hpp>
 
 int Application::Run() {
     m_window = std::make_unique<Window>(WindowProperties{ 
-        .Title = "Texture Laboratory" 
+        .Title = "Jotacraft" 
     });
 
     m_imgui = std::make_unique<ImGuiHandler>();
     m_imgui->Init(m_window->GetHandle());
 
-    GuiState guiState{};
     Camera camera{};
+    World world{};
+    BlockRegistry::Init();
 
     Shader shader{"assets/shaders/default.vert", "assets/shaders/default.frag"};
-    Texture texture{TextureProperties{
-        .ImagePath = guiState.filepath
-    }};
+    AtlasTexture atlas{};
 
-    Mesh mesh = CreateCube();
+    std::vector<Mesh> chunkMeshes;
+    for (int x = -2; x < 2; x++) {
+        for (int z = -2; z < 2; z++) {
+            world.GenerateChunk({x, z}, 6);
+        }
+    }
 
+    for (int x = -2; x < 2; x++) {
+        for (int z = -2; z < 2; z++) {
+            MeshData data = Mesher::GenerateMesh(world, {x, z});
+            chunkMeshes.push_back({data.vertices, data.indices});
+        }
+    }
+
+    bool showDebug = false;
     m_window->WasKeyPressed = [&](int key) {
         switch (key) {
-            case GLFW_KEY_ESCAPE: m_window->Close(); break;
+            case GLFW_KEY_ESCAPE:
+                if (!m_window->IsMouseLocked()) camera.ResetMouseMovement();
+
+                m_window->ToggleMouseLock();
+
+                break;
+            case GLFW_KEY_F1:
+                showDebug = !showDebug;
+                break;
+        }
+    };
+
+    m_window->WasMouseButtonPressed = [&](int button) {
+        switch (button) {
+            case GLFW_MOUSE_BUTTON_LEFT:
+                break;
         }
     };
 
     m_window->OnMouseMove = [&](double xpos, double ypos) {
-        camera.HandleMouseMovement(xpos, ypos);
+        if (m_window->IsMouseLocked()) camera.HandleMouseMovement(xpos, ypos);
     };
 
     glm::mat4 model{1.0f};
@@ -39,9 +69,8 @@ int Application::Run() {
         m_window->PollEvents();
 
         camera.HandleMovementInput(m_window->GetHandle(), deltaTime);
-        camera.HandleMouseInput(m_window->GetHandle());
 
-        glClearColor(0.1f, 0.1f, 0.13f, 1.0f);
+        glClearColor(0.5294f, 0.8078f, 0.9215f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader.Bind();
@@ -50,13 +79,13 @@ int Application::Run() {
             shader.SetMat4("uProjection", camera.GetProjectionMatrix());
             shader.SetInt("uTexture", 0);
 
-            texture.Bind();
-                mesh.Draw();
-            texture.Unbind();
+            atlas.Bind();
+                for (auto& mesh : chunkMeshes) mesh.Draw();
+            atlas.Unbind();
         shader.Unbind();
 
         m_imgui->Begin();
-            renderGUI(guiState, texture);
+            renderGUI(showDebug, camera);
         m_imgui->End();
 
         m_window->SwapBuffers();
@@ -66,36 +95,19 @@ int Application::Run() {
     return 0;
 }
 
-void Application::renderGUI(GuiState& state, Texture& texture) {
-    ImGui::SetNextWindowSize(ImVec2{ 320, 220});
-    ImGui::Begin("Settings", nullptr, 
-        ImGuiWindowFlags_NoResize |
-        ImGuiWindowFlags_NoCollapse
+void Application::renderGUI(bool showDebug, Camera& camera) { 
+    if (!showDebug) return;
+    
+    ImGui::SetNextWindowPos({15, 15});
+    ImGui::SetNextWindowSize({300, 50});
+    ImGui::Begin("Debug", nullptr,
+        ImGuiWindowFlags_NoMove | 
+        ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoResize
     );
 
-    ImGui::InputText("Image Path", &state.filepath);
-
-    const TextureProperties& props = texture.GetProperties();
-    ImGui::Text("Resolution: %dx%d", props.Width, props.Height);
-    ImGui::Text("Channels: %d", props.Channels);
-    ImGui::Text("Mipmaps: %s", props.Mipmaps ? "Yes" : "No");
-    ImGui::Text("Render Id: %d", props.Id);
-    
-    if (ImGui::Combo("Wrap", &state.currentWrap, wrapNames, IM_ARRAYSIZE(wrapNames))) {
-        texture.ChangeWrap(wrapOptions[state.currentWrap]);
-    }
-
-    if (ImGui::Combo("Min Filter", &state.currentMin, minFilterNames, IM_ARRAYSIZE(minFilterNames))) {
-        texture.ChangeMinFilter(filterOptions[state.currentMin]);
-    }
-
-    if (ImGui::Combo("Mag Filter", &state.currentMag, magFilterNames, IM_ARRAYSIZE(magFilterNames))) {
-        texture.ChangeMagFilter(filterOptions[state.currentMag]);
-    }
-
-    if (ImGui::Button("Reload Texture")) {
-        texture.ChangeImage(state.filepath);
-    }
+    auto pos = camera.GetPosition();
+    ImGui::Text("Camera Position: x %.2f, y %.2f, z %.2f", pos.x, pos.y, pos.z);
 
     ImGui::End();
 }

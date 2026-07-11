@@ -5,11 +5,6 @@
 #include <algorithm>
 
 void Camera::HandleMouseMovement(double xpos, double ypos) {
-    if (!m_focused) {
-        m_firstMouse = true;
-        return; 
-    }
-
     if (m_firstMouse) {
         m_lastMousePosition.x = xpos;
         m_lastMousePosition.y = ypos;
@@ -39,8 +34,6 @@ void Camera::HandleMouseMovement(double xpos, double ypos) {
 }
 
 void Camera::HandleMovementInput(GLFWwindow* window, float dt) {
-    if (!m_focused) return;
-
     float speed = 0.0f;
 
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
@@ -55,16 +48,6 @@ void Camera::HandleMovementInput(GLFWwindow* window, float dt) {
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) m_position -= GetRight() * speed;
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) m_position += m_up * speed;
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) m_position -= m_up * speed;
-}
-
-void Camera::HandleMouseInput(GLFWwindow* window) {
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-        m_focused = true;
-    } else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE) {
-        m_focused = false;
-    }
-
-    updateFocus(window);
 }
 
 glm::vec3 Camera::GetRight() const {
@@ -87,8 +70,3 @@ glm::mat4 Camera::GetProjectionMatrix() const {
         m_properties.FarPlane
     );
 };
-
-void Camera::updateFocus(GLFWwindow* window) {
-    if (m_focused) glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    else glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-}

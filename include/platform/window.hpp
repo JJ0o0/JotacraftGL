@@ -7,7 +7,7 @@
 #include <string>
 
 struct WindowProperties {
-    std::string Title = "Shader Playground";
+    std::string Title = "Window";
     uint32_t Width = 800;
     uint32_t Height = 600;
 };
@@ -22,7 +22,11 @@ class Window {
         void Close() const { glfwSetWindowShouldClose(m_handle, true); }
         bool ShouldClose() const { return glfwWindowShouldClose(m_handle); }
 
+        bool IsMouseLocked() const { return glfwGetInputMode(m_handle, GLFW_CURSOR) == GLFW_CURSOR_DISABLED; }
+        void ToggleMouseLock();
+
         std::function<void(int)> WasKeyPressed;
+        std::function<void(int)> WasMouseButtonPressed;
         std::function<void(double, double)> OnMouseMove;
 
         const WindowProperties& GetProperties() const { return m_properties; }
@@ -32,5 +36,6 @@ class Window {
         GLFWwindow* m_handle;
 
         static void keyCallback(GLFWwindow* glfwWindow, int key, int scancode, int action, int mods);
+        static void mouseButtonCallback(GLFWwindow* glfwWindow, int button, int action, int mods);
         static void mouseCallback(GLFWwindow* glfwWindow, double xpos, double ypos);
 };

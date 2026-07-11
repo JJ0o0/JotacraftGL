@@ -5,7 +5,7 @@
 
 struct CameraProperties {
     // CAMERA
-    float FieldOfView = 45.0f;
+    float FieldOfView = 90.0f;
     float AspectRatio = 4.0f / 3.0f;
     float NearPlane = 0.1f;
     float FarPlane = 100.0f;
@@ -26,8 +26,9 @@ class Camera {
 
         void HandleMouseMovement(double xpos, double ypos);
         void HandleMovementInput(GLFWwindow* window, float dt);
-        void HandleMouseInput(GLFWwindow* window);
+        void ResetMouseMovement() { m_firstMouse = true; }
 
+        glm::vec3 GetPosition() const { return m_position; }
         glm::vec3 GetRight() const;
         glm::mat4 GetViewMatrix() const;
         glm::mat4 GetProjectionMatrix() const;
@@ -35,7 +36,6 @@ class Camera {
         CameraProperties m_properties;
 
         bool m_firstMouse = true;
-        bool m_focused = false;
 
         float m_yaw = -90.0f;
 		float m_pitch = 0.0f;
@@ -46,6 +46,4 @@ class Camera {
         glm::vec3 m_position = { 0, 0, 3};
         glm::vec3 m_front = { 0, 0, -1};
         glm::vec3 m_up = { 0, 1, 0};
-
-        void updateFocus(GLFWwindow* window);
 };

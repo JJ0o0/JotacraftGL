@@ -9,6 +9,11 @@ class Mesh {
         Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
         ~Mesh();
         
+        Mesh(const Mesh&) = delete;
+        Mesh& operator=(const Mesh&) = delete;
+        Mesh(Mesh&& other) noexcept;
+        Mesh& operator=(Mesh&& other) noexcept;
+
         void Draw() const;
     private:
         uint32_t m_vao = 0;

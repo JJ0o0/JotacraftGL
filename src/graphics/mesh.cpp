@@ -26,8 +26,41 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
+    // Color
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+
     glBindVertexArray(0);
 }
+
+Mesh::Mesh(Mesh&& other) noexcept
+    : m_vao(other.m_vao), m_vbo(other.m_vbo), m_ebo(other.m_ebo), m_indexCount(other.m_indexCount) {
+    other.m_vao = 0;
+    other.m_vbo = 0;
+    other.m_ebo = 0;
+    other.m_indexCount = 0;
+}
+
+Mesh& Mesh::operator=(Mesh&& other) noexcept {
+    if (&other == this) return *this;
+
+    glDeleteBuffers(1, &m_ebo);
+    glDeleteBuffers(1, &m_vbo);
+    glDeleteVertexArrays(1, &m_vao);
+
+    m_vao = other.m_vao;
+    m_vbo = other.m_vbo;
+    m_ebo = other.m_ebo;
+    m_indexCount = other.m_indexCount;
+
+    other.m_vao = 0;
+    other.m_vbo = 0;
+    other.m_ebo = 0;
+    other.m_indexCount = 0;
+
+    return *this;
+}
+
 
 Mesh::~Mesh() {
     glDeleteBuffers(1, &m_ebo);

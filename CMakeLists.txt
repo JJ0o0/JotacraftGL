@@ -15,28 +15,35 @@ find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 
 add_subdirectory(
-    ../external
-    ${CMAKE_BINARY_DIR}/external
+    "./external"
+    "${CMAKE_BINARY_DIR}/external"
 )
 
 add_executable(${CMAKE_PROJECT_NAME}
-    src/main.cpp
-    src/application.cpp
-    src/camera.cpp
-    src/platform/window.cpp
-    src/platform/imgui_handler.cpp
-    src/graphics/mesh.cpp
-    src/graphics/shader.cpp
-    src/graphics/texture.cpp
+    "src/main.cpp"
+    "src/application.cpp"
+    "src/camera.cpp"
 
-    src/external/gl.c
-    src/external/stb_image.cpp
+    "src/platform/window.cpp"
+    "src/platform/imgui_handler.cpp"
+
+    "src/graphics/mesh.cpp"
+    "src/graphics/mesher.cpp"
+    "src/graphics/shader.cpp"
+    "src/graphics/texture.cpp"
+
+    "src/world/chunk.cpp"
+    "src/world/world.cpp"
+    "src/world/block_registry.cpp"
+
+    "src/external/gl.c"
+    "src/external/stb_image.cpp"
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME}
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/include
-        ../external
+        "./include"
+        "./external"
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
