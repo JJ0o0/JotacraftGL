@@ -1,12 +1,31 @@
 #pragma once
 
-#include "camera.hpp"
+#include <camera.hpp>
 #include <world/world.hpp>
 #include <glm/glm.hpp>
 
 struct AABB {
     glm::vec3 Minimum;
     glm::vec3 Maximum;
+
+    bool Intersects(const AABB& other) const {
+        return (
+            Maximum.x > other.Minimum.x &&
+            Minimum.x < other.Maximum.x &&
+
+            Maximum.y > other.Minimum.y &&
+            Minimum.y < other.Maximum.y &&
+
+            Maximum.z > other.Minimum.z &&
+            Minimum.z < other.Maximum.z
+        );
+    }
+};
+
+struct RaycastResult {
+    bool Hit = false;
+    glm::ivec3 VoxelPosition{0};
+    glm::ivec3 PreviousVoxelPosition{0};
 };
 
 class Player {
@@ -18,6 +37,7 @@ class Player {
         void Update(World& world, float deltatime);
         void HandleMovement(GLFWwindow* window, float deltatime);
 
+        RaycastResult Raycast(World& world, float maxDistance) const;
         AABB GetAABB() const;
 
         glm::vec3 GetEyePosition() const;

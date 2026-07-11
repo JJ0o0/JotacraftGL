@@ -61,14 +61,13 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept {
     return *this;
 }
 
-
 Mesh::~Mesh() {
     glDeleteBuffers(1, &m_ebo);
     glDeleteBuffers(1, &m_vbo);
     glDeleteVertexArrays(1, &m_vao);
 }
 
-void Mesh::Draw() const {
+void Mesh::Draw(DrawMode mode) const {
     glBindVertexArray(m_vao);
-    glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(static_cast<GLenum>(mode), m_indexCount, GL_UNSIGNED_INT, nullptr);
 }

@@ -23,6 +23,8 @@ void Chunk::GenerateFlat(int groundHeight) {
                     type = BlockType::Stone;
                 }
 
+                if (y == 0) type = BlockType::Bedrock;
+
                 SetVoxel(x, y, z, type);
             }
         }

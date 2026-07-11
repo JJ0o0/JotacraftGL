@@ -1,16 +1,34 @@
 #pragma once
 
-#include "chunk.hpp"
-#include "chunk_position.hpp"
+#include <world/chunk.hpp>
+#include <world/chunk_position.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <unordered_map>
+
+struct WorldUpdateResult {
+    std::vector<ChunkPosition> Created;
+    std::vector<ChunkPosition> Removed;
+};
+
+struct WorldSettings {
+    float RenderDistance = 4;
+};
 
 class World {
     public:
+        WorldUpdateResult Update(const glm::vec3& playerPosition);
+
         void GenerateChunk(const ChunkPosition& position, int groundHeight);
+        void RemoveChunk(const ChunkPosition& pos);
+        void SetBlock(int x, int y, int z, BlockType type);
+
+        bool HasChunk(const ChunkPosition& pos) const;
         Chunk* GetChunk(const ChunkPosition& position);
         BlockType GetBlock(int x, int y, int z);
+        
+        ChunkPosition WorldToChunkPosition(int x, int z);
     private:
         std::unordered_map<ChunkPosition, Chunk> m_chunks{};
 
-        ChunkPosition worldToChunkPosition(int x, int z);
+        WorldSettings m_settings{};
 };

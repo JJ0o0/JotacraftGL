@@ -1,8 +1,14 @@
 #pragma once
 
-#include "vertex.hpp"
+#include <graphics/vertex.hpp>
+#include <glad/gl.h>
 #include <cstdint>
 #include <vector>
+
+enum class DrawMode {
+    Triangles = GL_TRIANGLES,
+    Lines = GL_LINES
+};
 
 class Mesh {
     public:
@@ -14,7 +20,7 @@ class Mesh {
         Mesh(Mesh&& other) noexcept;
         Mesh& operator=(Mesh&& other) noexcept;
 
-        void Draw() const;
+        void Draw(DrawMode mode = DrawMode::Triangles) const;
     private:
         uint32_t m_vao = 0;
         uint32_t m_vbo = 0;

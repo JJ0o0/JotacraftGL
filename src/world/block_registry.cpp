@@ -11,6 +11,24 @@ void BlockRegistry::Init() {
         {{0, 0}} 
     };
 
+    s_textures[(size_t)BlockType::Cobblestone] = { 
+        {{0, 1}}, 
+        {{0, 1}}, 
+        {{0, 1}} 
+    };
+
+    s_textures[(size_t)BlockType::Bedrock] = { 
+        {{1, 1}}, 
+        {{1, 1}}, 
+        {{1, 1}} 
+    };
+
+    s_textures[(size_t)BlockType::Brick] = { 
+        {{5, 0}}, 
+        {{5, 0}}, 
+        {{5, 0}} 
+    };
+
     s_textures[(size_t)BlockType::Dirt] = { 
         {{1, 0}}, 
         {{1, 0}}, 
@@ -21,6 +39,12 @@ void BlockRegistry::Init() {
         {{3, 0}}, 
         {{2, 0}}, 
         {{1, 0}} 
+    };
+
+    s_textures[(size_t)BlockType::SimpleGrass] = { 
+        {{3, 0}}, 
+        {{3, 0}}, 
+        {{3, 0}},
     };
 
     s_textures[(size_t)BlockType::Oak] = { 

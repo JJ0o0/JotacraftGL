@@ -24,6 +24,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     "src/application.cpp"
     "src/camera.cpp"
     "src/player.cpp"
+    "src/game.cpp"
 
     "src/platform/window.cpp"
     "src/platform/imgui_handler.cpp"
@@ -35,6 +36,9 @@ add_executable(${CMAKE_PROJECT_NAME}
 
     "src/world/chunk.cpp"
     "src/world/world.cpp"
+    "src/world/world_renderer.cpp"
+    "src/world/outline_renderer.cpp"
+    "src/world/world_interaction.cpp"
     "src/world/block_registry.cpp"
 
     "src/external/gl.c"

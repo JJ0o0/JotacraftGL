@@ -78,6 +78,64 @@ void Player::HandleMovement(GLFWwindow* window, float deltatime) {
     }
 }
 
+RaycastResult Player::Raycast(World& world, float maxDistance) const {
+    glm::vec3 origin = GetEyePosition();
+    glm::vec3 direction = m_camera.GetFront();
+
+    glm::ivec3 voxel {
+        std::floor(origin.x),
+        std::floor(origin.y),
+        std::floor(origin.z),
+    };
+
+    glm::ivec3 step;
+    glm::vec3 tMax;
+    glm::vec3 tDelta;
+
+    for (int i = 0; i < 3; i++) {
+        if (direction[i] > 0) {
+            step[i] = 1;
+            tMax[i] = (std::floor(origin[i]) + 1.0f - origin[i]) / direction[i];
+            tDelta[i] = 1.0f / direction[i];
+        } else if (direction[i] < 0) {
+            step[i] = -1;
+            tMax[i] = (origin[i] - std::floor(origin[i])) / -direction[i];
+            tDelta[i] = -1.0f / direction[i];
+        } else {
+            step[i] = 0;
+            tMax[i] = std::numeric_limits<float>::infinity();
+            tDelta[i] = std::numeric_limits<float>::infinity();
+        }
+    }
+
+    glm::ivec3 previousVoxel = voxel;
+
+    while (true) {
+        if (tMax.x < tMax.y && tMax.x < tMax.z) {
+            if (tMax.x > maxDistance) break;
+            previousVoxel = voxel;
+            voxel.x += step.x;
+            tMax.x += tDelta.x;
+        } else if (tMax.y < tMax.z) {
+            if (tMax.y > maxDistance) break;
+            previousVoxel = voxel;
+            voxel.y += step.y;
+            tMax.y += tDelta.y;
+        } else {
+            if (tMax.z > maxDistance) break;
+            previousVoxel = voxel;
+            voxel.z += step.z;
+            tMax.z += tDelta.z;
+        }
+
+        if (world.GetBlock(voxel.x, voxel.y, voxel.z) != BlockType::Air) {
+            return RaycastResult{true, voxel, previousVoxel};
+        }
+    }
+
+    return RaycastResult{false};
+}
+
 AABB Player::GetAABB() const {
     glm::vec3 halfExtents{WIDTH / 2.0f, 0.0f, WIDTH / 2.0f};
     
