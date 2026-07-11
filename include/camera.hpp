@@ -10,10 +10,6 @@ struct CameraProperties {
     float NearPlane = 0.1f;
     float FarPlane = 100.0f;
 
-    // MOVEMENT
-    float WalkSpeed = 3.0f;
-    float RunSpeed = 6.0f;
-
     // MOUSE
     float MouseSensitivity = 0.15f;
     float MinimumPitchClamp = -89.0f;
@@ -25,12 +21,11 @@ class Camera {
         Camera(const CameraProperties& properties = {}) : m_properties(properties) {}
 
         void HandleMouseMovement(double xpos, double ypos);
-        void HandleMovementInput(GLFWwindow* window, float dt);
         void ResetMouseMovement() { m_firstMouse = true; }
 
-        glm::vec3 GetPosition() const { return m_position; }
+        glm::vec3 GetFront() const { return m_front; }
         glm::vec3 GetRight() const;
-        glm::mat4 GetViewMatrix() const;
+        glm::mat4 GetViewMatrix(const glm::vec3& position) const;
         glm::mat4 GetProjectionMatrix() const;
     private:
         CameraProperties m_properties;
@@ -43,7 +38,6 @@ class Camera {
 
 		glm::vec2 m_lastMousePosition{0.0f};
 
-        glm::vec3 m_position = { 0, 0, 3};
         glm::vec3 m_front = { 0, 0, -1};
         glm::vec3 m_up = { 0, 1, 0};
 };

@@ -23,6 +23,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     "src/main.cpp"
     "src/application.cpp"
     "src/camera.cpp"
+    "src/player.cpp"
 
     "src/platform/window.cpp"
     "src/platform/imgui_handler.cpp"

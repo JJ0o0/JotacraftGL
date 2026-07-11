@@ -1,18 +1,21 @@
 #pragma once
 
 #include <graphics/texture.hpp>
+#include <memory>
 
 class AtlasTexture {
     public:
         AtlasTexture() {
-            m_texture.ChangeImage("assets/textures/atlas.png");
-            m_texture.ChangeMinFilter(TextureFilterOption::Nearest);
-            m_texture.ChangeMagFilter(TextureFilterOption::Nearest);
-            m_texture.ChangeWrap(TextureWrapOption::ClampToEdge);
+            m_texture = std::make_unique<Texture>(TextureProperties{
+                .ImagePath = "assets/textures/atlas.png",
+                .Wrap = TextureWrapOption::ClampToEdge,
+                .MinFilter = TextureFilterOption::Nearest,
+                .MagFilter = TextureFilterOption::Nearest,
+            });
         }
 
-        void Bind() const { m_texture.Bind(); }
-        void Unbind() const { m_texture.Unbind(); }
+        void Bind() const { m_texture->Bind(); }
+        void Unbind() const { m_texture->Unbind(); }
     private:
-        Texture m_texture;
+        std::unique_ptr<Texture> m_texture;
 };

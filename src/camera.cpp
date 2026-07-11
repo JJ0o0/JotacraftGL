@@ -33,31 +33,14 @@ void Camera::HandleMouseMovement(double xpos, double ypos) {
     m_front = glm::normalize(direction);
 }
 
-void Camera::HandleMovementInput(GLFWwindow* window, float dt) {
-    float speed = 0.0f;
-
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        speed = m_properties.RunSpeed * dt;
-    } else {
-        speed = m_properties.WalkSpeed * dt;
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) m_position += m_front * speed;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) m_position -= m_front * speed;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) m_position += GetRight() * speed;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) m_position -= GetRight() * speed;
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) m_position += m_up * speed;
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) m_position -= m_up * speed;
-}
-
 glm::vec3 Camera::GetRight() const {
     return glm::normalize(glm::cross(m_front, m_up));
 }
 
-glm::mat4 Camera::GetViewMatrix() const {
+glm::mat4 Camera::GetViewMatrix(const glm::vec3& position) const {
     return glm::lookAt(
-        m_position,
-        m_position + m_front,
+        position,
+        position + m_front,
         m_up
     );
 }

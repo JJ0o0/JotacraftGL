@@ -1,7 +1,5 @@
 #include <application.hpp>
-#include <world/world.hpp>
-#include <graphics/mesher.hpp>
-#include <graphics/atlas_texture.hpp>
+
 
 int Application::Run() {
     m_window = std::make_unique<Window>(WindowProperties{ 
@@ -11,7 +9,7 @@ int Application::Run() {
     m_imgui = std::make_unique<ImGuiHandler>();
     m_imgui->Init(m_window->GetHandle());
 
-    Camera camera{};
+    Player player{};
     World world{};
     BlockRegistry::Init();
 
@@ -36,7 +34,7 @@ int Application::Run() {
     m_window->WasKeyPressed = [&](int key) {
         switch (key) {
             case GLFW_KEY_ESCAPE:
-                if (!m_window->IsMouseLocked()) camera.ResetMouseMovement();
+                if (!m_window->IsMouseLocked()) player.GetCamera().ResetMouseMovement();
 
                 m_window->ToggleMouseLock();
 
@@ -55,7 +53,7 @@ int Application::Run() {
     };
 
     m_window->OnMouseMove = [&](double xpos, double ypos) {
-        if (m_window->IsMouseLocked()) camera.HandleMouseMovement(xpos, ypos);
+        if (m_window->IsMouseLocked()) player.GetCamera().HandleMouseMovement(xpos, ypos);
     };
 
     glm::mat4 model{1.0f};
@@ -68,15 +66,16 @@ int Application::Run() {
 
         m_window->PollEvents();
 
-        camera.HandleMovementInput(m_window->GetHandle(), deltaTime);
+        player.HandleMovement(m_window->GetHandle(), deltaTime);
+        player.Update(world, deltaTime);
 
         glClearColor(0.5294f, 0.8078f, 0.9215f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader.Bind();
             shader.SetMat4("uModel", model);
-            shader.SetMat4("uView", camera.GetViewMatrix());
-            shader.SetMat4("uProjection", camera.GetProjectionMatrix());
+            shader.SetMat4("uView", player.GetCamera().GetViewMatrix(player.GetEyePosition()));
+            shader.SetMat4("uProjection", player.GetCamera().GetProjectionMatrix());
             shader.SetInt("uTexture", 0);
 
             atlas.Bind();
@@ -85,7 +84,7 @@ int Application::Run() {
         shader.Unbind();
 
         m_imgui->Begin();
-            renderGUI(showDebug, camera);
+            renderGUI(showDebug, player);
         m_imgui->End();
 
         m_window->SwapBuffers();
@@ -95,19 +94,21 @@ int Application::Run() {
     return 0;
 }
 
-void Application::renderGUI(bool showDebug, Camera& camera) { 
+void Application::renderGUI(bool showDebug, Player& player) { 
     if (!showDebug) return;
     
     ImGui::SetNextWindowPos({15, 15});
-    ImGui::SetNextWindowSize({300, 50});
+    ImGui::SetNextWindowSize({300, 100});
     ImGui::Begin("Debug", nullptr,
         ImGuiWindowFlags_NoMove | 
         ImGuiWindowFlags_NoCollapse |
         ImGuiWindowFlags_NoResize
     );
 
-    auto pos = camera.GetPosition();
-    ImGui::Text("Camera Position: x %.2f, y %.2f, z %.2f", pos.x, pos.y, pos.z);
+    auto pos = player.GetPosition();
+    auto vel = player.GetVelocity();
+    ImGui::Text("Player Position: x %.2f, y %.2f, z %.2f", pos.x, pos.y, pos.z);
+    ImGui::Text("Player Velocity: x %.2f, y %.2f, z %.2f", vel.x, vel.y, vel.z);
 
     ImGui::End();
 }
