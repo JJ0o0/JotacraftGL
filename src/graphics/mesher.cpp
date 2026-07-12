@@ -18,27 +18,27 @@ MeshData Mesher::GenerateMesh(World& world, const ChunkPosition& chunkPosition) 
                 int worldZ = chunkPosition.z * Chunk::CHUNK_SIZE + z;
 
                 if (world.GetBlock(worldX, worldY + 1, worldZ) == BlockType::Air) {
-                    addFace(mesh, {worldX, worldY, worldZ}, FaceDirection::Top, block);
+                    addFace(mesh, world, {worldX, worldY, worldZ}, {worldX, worldY + 1, worldZ}, FaceDirection::Top, block);
                 }
 
                 if (world.GetBlock(worldX, worldY - 1, worldZ) == BlockType::Air) {
-                    addFace(mesh, {worldX, worldY, worldZ}, FaceDirection::Bottom, block);
+                    addFace(mesh, world, {worldX, worldY, worldZ}, {worldX, worldY - 1, worldZ}, FaceDirection::Bottom, block);
                 }
 
                 if (world.GetBlock(worldX, worldY, worldZ + 1) == BlockType::Air) {
-                    addFace(mesh, {worldX, worldY, worldZ}, FaceDirection::Front, block);
+                    addFace(mesh, world, {worldX, worldY, worldZ},{worldX, worldY, worldZ + 1}, FaceDirection::Front, block);
                 }
 
                 if (world.GetBlock(worldX, worldY, worldZ - 1) == BlockType::Air) {
-                    addFace(mesh, {worldX, worldY, worldZ}, FaceDirection::Back, block);
+                    addFace(mesh, world, {worldX, worldY, worldZ}, {worldX, worldY, worldZ - 1}, FaceDirection::Back, block);
                 }
 
                 if (world.GetBlock(worldX + 1, worldY, worldZ) == BlockType::Air) {
-                    addFace(mesh, {worldX, worldY, worldZ}, FaceDirection::Right, block);
+                    addFace(mesh, world, {worldX, worldY, worldZ}, {worldX + 1, worldY, worldZ}, FaceDirection::Right, block);
                 }
 
                 if (world.GetBlock(worldX - 1, worldY, worldZ) == BlockType::Air) {
-                    addFace(mesh, {worldX, worldY, worldZ}, FaceDirection::Left, block);
+                    addFace(mesh, world, {worldX, worldY, worldZ}, {worldX - 1, worldY, worldZ}, FaceDirection::Left, block);
                 }
             }
         }
@@ -47,44 +47,64 @@ MeshData Mesher::GenerateMesh(World& world, const ChunkPosition& chunkPosition) 
     return mesh;
 }
 
-void Mesher::addFace(MeshData& mesh, glm::vec3 position, FaceDirection direction, BlockType type) {
+void Mesher::addFace(MeshData& mesh, World& world, glm::vec3 position, glm::ivec3 neighborPosition, FaceDirection direction, BlockType type) {
     uint32_t baseIndex = static_cast<uint32_t>(mesh.vertices.size());
     const BlockFaceTextures& textures = BlockRegistry::Get(type);
+
+    uint8_t rawLight = world.GetSkyLight(neighborPosition.x, neighborPosition.y, neighborPosition.z);
+    float skyLight = static_cast<float>(rawLight);
 
     // Vertices
     AtlasCoord atlasCoord = getDataForFace(textures, direction).Texture;
     glm::vec2 uvMin = atlasCoord.GetUVMin();
     glm::vec2 uvMax = atlasCoord.GetUVMax();
+
+    int bx = static_cast<int>(position.x);
+    int by = static_cast<int>(position.y);
+    int bz = static_cast<int>(position.z);
     switch (direction) {
         case FaceDirection::Top: {
             glm::vec3 normal{0, 1, 0};
+
+            float ao0 = calculateAO(world, {bx-1, by+1, bz}, {bx, by+1, bz-1}, {bx-1, by+1, bz-1});
+            float ao1 = calculateAO(world, {bx-1, by+1, bz}, {bx, by+1, bz+1}, {bx-1, by+1, bz+1});
+            float ao2 = calculateAO(world, {bx+1, by+1, bz}, {bx, by+1, bz+1}, {bx+1, by+1, bz+1});
+            float ao3 = calculateAO(world, {bx+1, by+1, bz}, {bx, by+1, bz-1}, {bx+1, by+1, bz-1});
 
             mesh.vertices.push_back({
                 {position.x, position.y + 1, position.z},
                 normal,
                 {uvMin.x, uvMin.y},
-                textures.Top.Color
+                textures.Top.Color,
+                ao0,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x, position.y + 1, position.z + 1},
                 normal,
                 {uvMax.x, uvMin.y},
-                textures.Top.Color
+                textures.Top.Color,
+                ao1,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x + 1, position.y + 1, position.z + 1},
                 normal,
                 {uvMax.x, uvMax.y},
-                textures.Top.Color
+                textures.Top.Color,
+                ao2,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x + 1, position.y + 1, position.z},
                 normal,
                 {uvMin.x, uvMax.y},
-                textures.Top.Color
+                textures.Top.Color,
+                ao3,
+                skyLight
             });
 
             break;
@@ -92,32 +112,45 @@ void Mesher::addFace(MeshData& mesh, glm::vec3 position, FaceDirection direction
         case FaceDirection::Bottom: {
             glm::vec3 normal{0, -1, 0};
 
+            float ao0 = calculateAO(world, {bx-1, by-1, bz}, {bx, by-1, bz+1}, {bx-1, by-1, bz+1});
+            float ao1 = calculateAO(world, {bx-1, by-1, bz}, {bx, by-1, bz-1}, {bx-1, by-1, bz-1});
+            float ao2 = calculateAO(world, {bx+1, by-1, bz}, {bx, by-1, bz-1}, {bx+1, by-1, bz-1});
+            float ao3 = calculateAO(world, {bx+1, by-1, bz}, {bx, by-1, bz+1}, {bx+1, by-1, bz+1});
+
             mesh.vertices.push_back({
                 {position.x, position.y, position.z + 1},
                 normal,
                 {uvMin.x, uvMin.y},
-                textures.Bottom.Color
+                textures.Bottom.Color,
+                ao0,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x, position.y, position.z},
                 normal,
                 {uvMax.x, uvMin.y},
-                textures.Bottom.Color
+                textures.Bottom.Color,
+                ao1,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x + 1, position.y, position.z},
                 normal,
                 {uvMax.x, uvMax.y},
-                textures.Bottom.Color
+                textures.Bottom.Color,
+                ao2,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x + 1, position.y, position.z + 1},
                 normal,
                 {uvMin.x, uvMax.y},
-                textures.Bottom.Color
+                textures.Bottom.Color,
+                ao3,
+                skyLight
             });
 
             break;
@@ -125,32 +158,45 @@ void Mesher::addFace(MeshData& mesh, glm::vec3 position, FaceDirection direction
         case FaceDirection::Front: {
             glm::vec3 normal{0, 0, 1};
 
+            float ao0 = calculateAO(world, {bx-1, by, bz+1}, {bx, by-1, bz+1}, {bx-1, by-1, bz+1});
+            float ao1 = calculateAO(world, {bx+1, by, bz+1}, {bx, by-1, bz+1}, {bx+1, by-1, bz+1});
+            float ao2 = calculateAO(world, {bx+1, by, bz+1}, {bx, by+1, bz+1}, {bx+1, by+1, bz+1});
+            float ao3 = calculateAO(world, {bx-1, by, bz+1}, {bx, by+1, bz+1}, {bx-1, by+1, bz+1});
+
             mesh.vertices.push_back({
                 {position.x, position.y, position.z + 1},
                 normal,
                 {uvMin.x, uvMin.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao0,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x + 1, position.y, position.z + 1},
                 normal,
                 {uvMax.x, uvMin.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao1,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x + 1, position.y + 1, position.z + 1},
                 normal,
                 {uvMax.x, uvMax.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao2,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x, position.y + 1, position.z + 1},
                 normal,
                 {uvMin.x, uvMax.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao3,
+                skyLight
             });
 
             break;
@@ -158,32 +204,45 @@ void Mesher::addFace(MeshData& mesh, glm::vec3 position, FaceDirection direction
         case FaceDirection::Back: {
             glm::vec3 normal{0, 0, -1};
 
+            float ao0 = calculateAO(world, {bx+1, by, bz-1}, {bx, by-1, bz-1}, {bx+1, by-1, bz-1});
+            float ao1 = calculateAO(world, {bx-1, by, bz-1}, {bx, by-1, bz-1}, {bx-1, by-1, bz-1});
+            float ao2 = calculateAO(world, {bx-1, by, bz-1}, {bx, by+1, bz-1}, {bx-1, by+1, bz-1});
+            float ao3 = calculateAO(world, {bx+1, by, bz-1}, {bx, by+1, bz-1}, {bx+1, by+1, bz-1});
+
             mesh.vertices.push_back({
                 {position.x + 1, position.y, position.z},
                 normal,
                 {uvMin.x, uvMin.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao0,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x, position.y, position.z},
                 normal,
                 {uvMax.x, uvMin.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao1,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x, position.y + 1, position.z},
                 normal,
                 {uvMax.x, uvMax.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao2,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x + 1, position.y + 1, position.z},
                 normal,
                 {uvMin.x, uvMax.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao3,
+                skyLight
             });
 
             break;
@@ -191,32 +250,45 @@ void Mesher::addFace(MeshData& mesh, glm::vec3 position, FaceDirection direction
         case FaceDirection::Right: {
             glm::vec3 normal{1, 0, 0};
 
+            float ao0 = calculateAO(world, {bx+1, by, bz+1}, {bx+1, by-1, bz}, {bx+1, by-1, bz+1});
+            float ao1 = calculateAO(world, {bx+1, by, bz-1}, {bx+1, by-1, bz}, {bx+1, by-1, bz-1});
+            float ao2 = calculateAO(world, {bx+1, by, bz-1}, {bx+1, by+1, bz}, {bx+1, by+1, bz-1});
+            float ao3 = calculateAO(world, {bx+1, by, bz+1}, {bx+1, by+1, bz}, {bx+1, by+1, bz+1});
+
             mesh.vertices.push_back({
                 {position.x + 1, position.y, position.z + 1},
                 normal,
                 {uvMin.x, uvMin.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao0,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x + 1, position.y, position.z},
                 normal,
                 {uvMax.x, uvMin.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao1,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x + 1, position.y + 1, position.z},
                 normal,
                 {uvMax.x, uvMax.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao2,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x + 1, position.y + 1, position.z + 1},
                 normal,
                 {uvMin.x, uvMax.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao3,
+                skyLight
             });
 
             break;
@@ -224,32 +296,45 @@ void Mesher::addFace(MeshData& mesh, glm::vec3 position, FaceDirection direction
         case FaceDirection::Left: {
             glm::vec3 normal{-1, 0, 0};
 
+            float ao0 = calculateAO(world, {bx-1, by, bz-1}, {bx-1, by-1, bz}, {bx-1, by-1, bz-1});
+            float ao1 = calculateAO(world, {bx-1, by, bz+1}, {bx-1, by-1, bz}, {bx-1, by-1, bz+1});
+            float ao2 = calculateAO(world, {bx-1, by, bz+1}, {bx-1, by+1, bz}, {bx-1, by+1, bz+1});
+            float ao3 = calculateAO(world, {bx-1, by, bz-1}, {bx-1, by+1, bz}, {bx-1, by+1, bz-1});
+
             mesh.vertices.push_back({
                 {position.x, position.y, position.z},
                 normal,
                 {uvMin.x, uvMin.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao0,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x, position.y, position.z + 1},
                 normal,
                 {uvMax.x, uvMin.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao1,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x, position.y + 1, position.z + 1},
                 normal,
                 {uvMax.x, uvMax.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao2,
+                skyLight
             });
 
             mesh.vertices.push_back({
                 {position.x, position.y + 1, position.z},
                 normal,
                 {uvMin.x, uvMax.y},
-                textures.Side.Color
+                textures.Side.Color,
+                ao3,
+                skyLight
             });
 
             break;
@@ -274,4 +359,13 @@ FaceData Mesher::getDataForFace(const BlockFaceTextures& textures, FaceDirection
         default:
             return textures.Side;
     }
+}
+
+float Mesher::calculateAO(World& world, glm::ivec3 side1, glm::ivec3 side2, glm::ivec3 corner) {
+    bool s1 = world.GetBlock(side1.x, side1.y, side1.z) != BlockType::Air;
+    bool s2 = world.GetBlock(side2.x, side2.y, side2.z) != BlockType::Air;
+    bool c  = world.GetBlock(corner.x, corner.y, corner.z) != BlockType::Air;
+
+    if (s1 && s2) return 0.0f;
+    return 3.0f - (static_cast<float>(s1) + static_cast<float>(s2) + static_cast<float>(c));
 }

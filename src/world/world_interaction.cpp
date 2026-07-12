@@ -1,4 +1,5 @@
 #include <world/world_interaction.hpp>
+#include <graphics/light_engine.hpp>
 
 void WorldInteraction::PlaceBlock(World& world, Player& player, WorldRenderer& renderer, const RaycastResult& target, BlockType type) {
     if (!target.Hit) return;
@@ -15,6 +16,7 @@ void WorldInteraction::PlaceBlock(World& world, Player& player, WorldRenderer& r
     world.SetBlock(pos.x, pos.y, pos.z, type);
 
     ChunkPosition chunkPos = world.WorldToChunkPosition(pos.x, pos.z);
+    LightEngine::OnBlockPlaced(world, pos);
     renderer.RegenerateChunk(world, chunkPos);
 
     int localX = pos.x - (chunkPos.x * Chunk::CHUNK_SIZE);
@@ -31,8 +33,9 @@ void WorldInteraction::BreakBlock(World& world, WorldRenderer& renderer, const R
 
     glm::ivec3 pos = target.VoxelPosition;
     world.SetBlock(pos.x, pos.y, pos.z, BlockType::Air);
-
+    
     ChunkPosition chunkPos = world.WorldToChunkPosition(pos.x, pos.z);
+    LightEngine::OnBlockBroken(world, pos);
     renderer.RegenerateChunk(world, chunkPos);
 
     int localX = pos.x - (chunkPos.x * Chunk::CHUNK_SIZE);

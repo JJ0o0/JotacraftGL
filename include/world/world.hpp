@@ -21,10 +21,12 @@ class World {
         void GenerateChunk(const ChunkPosition& position, int groundHeight);
         void RemoveChunk(const ChunkPosition& pos);
         void SetBlock(int x, int y, int z, BlockType type);
+        void SetSkyLight(int x, int y, int z, uint8_t level);
 
         bool HasChunk(const ChunkPosition& pos) const;
         Chunk* GetChunk(const ChunkPosition& position);
         BlockType GetBlock(int x, int y, int z);
+        uint8_t GetSkyLight(int x, int y, int z);
         
         ChunkPosition WorldToChunkPosition(int x, int z);
     private:

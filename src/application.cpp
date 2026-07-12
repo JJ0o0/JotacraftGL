@@ -18,6 +18,8 @@ int Application::Run() {
         float deltaTime = currTime - lastTime;
         lastTime = currTime;
 
+        deltaTime = std::min(deltaTime, 0.05f);
+
         m_window->PollEvents();
 
         game.Update(deltaTime);

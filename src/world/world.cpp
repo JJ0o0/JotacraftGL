@@ -58,6 +58,18 @@ void World::SetBlock(int x, int y, int z, BlockType type) {
     chunk->SetVoxel(localX, localY, localZ, type);
 }
 
+void World::SetSkyLight(int x, int y, int z, uint8_t level) {
+    ChunkPosition chunkPosition = WorldToChunkPosition(x, z);
+    Chunk* chunk = GetChunk(chunkPosition);
+    if (!chunk) return;
+
+    int localX = x - (chunkPosition.x * Chunk::CHUNK_SIZE);
+    int localY = y;
+    int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE);
+
+    chunk->SetSkyLight(localX, localY, localZ, level);
+}
+
 bool World::HasChunk(const ChunkPosition& pos) const { return m_chunks.contains(pos); }
 
 Chunk* World::GetChunk(const ChunkPosition& position) {
@@ -76,6 +88,18 @@ BlockType World::GetBlock(int x, int y, int z) {
     int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE);
 
     return chunk->GetVoxel(localX, localY, localZ);
+}
+
+uint8_t World::GetSkyLight(int x, int y, int z) {
+    ChunkPosition chunkPosition = WorldToChunkPosition(x, z);
+    Chunk* chunk = GetChunk(chunkPosition);
+    if (!chunk) return 0;
+
+    int localX = x - (chunkPosition.x * Chunk::CHUNK_SIZE);
+    int localY = y;
+    int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE);
+
+    return chunk->GetSkyLight(localX, localY, localZ);
 }
 
 ChunkPosition World::WorldToChunkPosition(int x, int z) {

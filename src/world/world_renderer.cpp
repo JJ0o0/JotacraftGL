@@ -1,7 +1,12 @@
 #include <world/world_renderer.hpp>
+#include <graphics/light_engine.hpp>
 #include <graphics/mesher.hpp>
 
 void WorldRenderer::Update(World& world, const WorldUpdateResult& update) {
+    for (const auto& pos : update.Created) {
+        LightEngine::InitializeSkyLight(world, pos);
+    }
+    
     for (const auto& pos : update.Created) {
         RegenerateChunk(world, pos);
 
@@ -22,6 +27,10 @@ void WorldRenderer::Render(const Player& player) {
         m_shader.SetMat4("uModel", model);
         m_shader.SetMat4("uView", player.GetCamera().GetViewMatrix(player.GetEyePosition()));
         m_shader.SetMat4("uProjection", player.GetCamera().GetProjectionMatrix());
+        
+        m_shader.SetVec3("uSun.Color", m_sun.Color);
+        m_shader.SetVec3("uSun.Direction", m_sun.Direction);
+        
         m_shader.SetInt("uTexture", 0);
 
         m_atlas.Bind();

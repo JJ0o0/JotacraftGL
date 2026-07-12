@@ -30,6 +30,14 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(8 * sizeof(float)));
     glEnableVertexAttribArray(3);
 
+    // AO
+    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(11 * sizeof(float)));
+    glEnableVertexAttribArray(4);
+
+    // Sky Light
+    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(12 * sizeof(float)));
+    glEnableVertexAttribArray(5);
+
     glBindVertexArray(0);
 }
 

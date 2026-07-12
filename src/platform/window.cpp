@@ -28,6 +28,12 @@ void Window::mouseCallback(GLFWwindow* glfwWindow, double xpos, double ypos) {
     if (window->OnMouseMove) window->OnMouseMove(xpos, ypos);
 }
 
+void Window::mouseScrollCallback(GLFWwindow* glfwWindow, double xoffset, double yoffset) {
+    Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
+
+    if (window->OnMouseScroll) window->OnMouseScroll(xoffset, yoffset);
+}
+
 Window::Window(const WindowProperties& properties)
     : m_properties(properties) {
     if (!glfwInit()) {
@@ -55,6 +61,7 @@ Window::Window(const WindowProperties& properties)
     glfwSetWindowUserPointer(m_handle, this);
     glfwSetKeyCallback(m_handle, keyCallback);
     glfwSetMouseButtonCallback(m_handle, mouseButtonCallback);
+    glfwSetScrollCallback(m_handle, mouseScrollCallback);
     glfwSetCursorPosCallback(m_handle, mouseCallback);
     glfwMakeContextCurrent(m_handle);
 

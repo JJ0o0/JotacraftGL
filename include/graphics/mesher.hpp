@@ -24,6 +24,7 @@ class Mesher {
     public:
         static MeshData GenerateMesh(World& world, const ChunkPosition& chunkPosition);
     private:
-        static void addFace(MeshData& mesh, glm::vec3 position, FaceDirection direction, BlockType type);
+        static void addFace(MeshData& mesh, World& world, glm::vec3 position, glm::ivec3 neighborPosition, FaceDirection direction, BlockType type);
         static FaceData getDataForFace(const BlockFaceTextures& textures, FaceDirection direction);
+        static float calculateAO(World& world, glm::ivec3 side1, glm::ivec3 side2, glm::ivec3 corner);
 };

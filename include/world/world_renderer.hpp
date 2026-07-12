@@ -1,5 +1,6 @@
 #pragma once
 
+#include <graphics/light.hpp>
 #include <graphics/shader.hpp>
 #include <graphics/mesh.hpp>
 #include <graphics/atlas_texture.hpp>
@@ -23,4 +24,5 @@ class WorldRenderer {
 
         Shader m_shader;
         AtlasTexture m_atlas;
+        SunLight m_sun{};
 };

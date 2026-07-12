@@ -3,10 +3,13 @@
 #include <world/block_registry.hpp>
 #include <world/world_interaction.hpp>
 
+#include <graphics/light_engine.hpp>
 #include <graphics/hud/gui_registry.hpp>
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
+
+#include <algorithm>
 
 Game::Game(Window& window) 
     : m_window(window) {}
@@ -56,6 +59,21 @@ void Game::Initialize() {
         if (m_window.IsMouseLocked()) m_player.GetCamera().HandleMouseMovement(xpos, ypos);
     };
 
+    m_window.OnMouseScroll = [&](double xoffset, double yoffset) {
+        if (m_window.IsMouseLocked()) {
+            if (yoffset > 0) { 
+                if (m_selectedSlot + 1 > 8) m_selectedSlot = 0;
+                else m_selectedSlot++;
+            }
+            else if (yoffset < 0) {
+                if (m_selectedSlot - 1 < 0) m_selectedSlot = 8;
+                else m_selectedSlot--;
+            }
+
+            m_selectedSlot = std::clamp(m_selectedSlot, 0, 8);
+        }
+    };
+
     auto initResult = m_world.Update(m_player.GetPosition());
     m_worldRenderer.Update(m_world, initResult);
 }
@@ -85,7 +103,7 @@ void Game::RenderDebugGUI() {
     if (!m_showDebug) return;
     
     ImGui::SetNextWindowPos({15, 15});
-    ImGui::SetNextWindowSize({300, 100});
+    ImGui::SetNextWindowSize({300, 130});
     ImGui::Begin("Debug", nullptr,
         ImGuiWindowFlags_NoMove | 
         ImGuiWindowFlags_NoCollapse |

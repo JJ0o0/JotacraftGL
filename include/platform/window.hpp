@@ -28,6 +28,7 @@ class Window {
         std::function<void(int)> WasKeyPressed;
         std::function<void(int)> WasMouseButtonPressed;
         std::function<void(double, double)> OnMouseMove;
+        std::function<void(double, double)> OnMouseScroll;
 
         const WindowProperties& GetProperties() const { return m_properties; }
         GLFWwindow* GetHandle() const { return m_handle; }
@@ -38,4 +39,5 @@ class Window {
         static void keyCallback(GLFWwindow* glfwWindow, int key, int scancode, int action, int mods);
         static void mouseButtonCallback(GLFWwindow* glfwWindow, int button, int action, int mods);
         static void mouseCallback(GLFWwindow* glfwWindow, double xpos, double ypos);
+        static void mouseScrollCallback(GLFWwindow* glfwWindow, double xoffset, double yoffset);
 };

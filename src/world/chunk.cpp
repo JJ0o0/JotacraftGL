@@ -31,6 +31,18 @@ void Chunk::GenerateFlat(int groundHeight) {
     }
 }
 
+uint8_t Chunk::GetSkyLight(int x, int y, int z) const {
+    if (!isValid(x, y, z)) return 0;
+
+    return m_lightLevels.at(getIndex(x, y, z));
+}
+
+void Chunk::SetSkyLight(int x, int y, int z, uint8_t level) {
+    if (!isValid(x, y, z)) return;
+
+    m_lightLevels.at(getIndex(x, y, z)) = level;
+}
+
 BlockType Chunk::GetVoxel(int x, int y, int z) const {
     if (!isValid(x, y, z)) return BlockType::Air;
 
