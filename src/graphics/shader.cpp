@@ -88,12 +88,24 @@ void Shader::SetInt(const std::string& name, const int& value) {
     glUniform1i(getUniformLocation(name), value);
 }
 
+void Shader::SetBool(const std::string& name, const bool& value) {
+    glUniform1i(getUniformLocation(name), value ? 1 : 0);
+}
+
 void Shader::SetFloat(const std::string& name, const float& value) {
     glUniform1f(getUniformLocation(name), value);
 }
 
+void Shader::SetVec2(const std::string& name, const glm::vec2& value) {
+    glUniform2fv(getUniformLocation(name), 1, glm::value_ptr(value));
+}
+
 void Shader::SetVec3(const std::string& name, const glm::vec3& value) {
     glUniform3fv(getUniformLocation(name), 1, glm::value_ptr(value));
+}
+
+void Shader::SetVec4(const std::string& name, const glm::vec4& value) {
+    glUniform4fv(getUniformLocation(name), 1, glm::value_ptr(value));
 }
 
 void Shader::SetMat4(const std::string& name, const glm::mat4& value) {

@@ -16,10 +16,10 @@ struct BlockFaceTextures {
 };
 
 class BlockRegistry {
-public:
-    static void Init();
-    static const BlockFaceTextures& Get(BlockType type);
+    public:
+        static void Init();
+        static const BlockFaceTextures& Get(BlockType type);
 
-private:
-    static std::array<BlockFaceTextures, (size_t)BlockType::Count> s_textures;
+    private:
+        static std::array<BlockFaceTextures, (size_t)BlockType::Count> s_textures;
 };

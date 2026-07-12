@@ -18,7 +18,7 @@ void OutlineRenderer::Render(const Player& player) {
         m_shader.SetMat4("uView", player.GetCamera().GetViewMatrix(player.GetEyePosition()));
         m_shader.SetMat4("uProjection", player.GetCamera().GetProjectionMatrix());
         m_shader.SetVec3("uColor", glm::vec3(0.0f));
-        m_shader.SetFloat("uThickness", 0.01f);
+        m_shader.SetFloat("uThickness", 0.008f);
 
         m_mesh.Draw();
     m_shader.Unbind();

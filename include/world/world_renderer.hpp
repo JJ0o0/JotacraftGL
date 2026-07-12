@@ -16,6 +16,8 @@ class WorldRenderer {
         void Render(const Player& player);
 
         void RegenerateChunk(World& world, const ChunkPosition& pos);
+
+        const AtlasTexture& GetAtlas() const { return m_atlas; }
     private:
         std::unordered_map<ChunkPosition, Mesh> m_chunkMeshes;
 

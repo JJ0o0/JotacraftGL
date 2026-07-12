@@ -47,10 +47,16 @@ void BlockRegistry::Init() {
         {{3, 0}},
     };
 
-    s_textures[(size_t)BlockType::Oak] = { 
+    s_textures[(size_t)BlockType::OakLog] = { 
         {{4, 1}}, 
         {{3, 1}}, 
         {{4, 1}} 
+    };
+
+    s_textures[(size_t)BlockType::OakPlanks] = { 
+        {{4, 0}}, 
+        {{4, 0}}, 
+        {{4, 0}} 
     };
 }
 

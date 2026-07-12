@@ -33,6 +33,11 @@ add_executable(${CMAKE_PROJECT_NAME}
     "src/graphics/mesher.cpp"
     "src/graphics/shader.cpp"
     "src/graphics/texture.cpp"
+    "src/graphics/hud/mesh_2d.cpp"
+    "src/graphics/hud/renderer_2d.cpp"
+    "src/graphics/hud/gui_registry.cpp"
+    "src/graphics/hud/gui_renderer.cpp"
+    "src/graphics/hud/hotbar.cpp"
 
     "src/world/chunk.cpp"
     "src/world/world.cpp"

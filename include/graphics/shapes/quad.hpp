@@ -1,5 +1,6 @@
 #pragma once
 
+#include <graphics/hud/mesh_2d.hpp>
 #include <graphics/mesh.hpp>
 #include <graphics/vertex.hpp>
 #include <vector>
@@ -20,4 +21,20 @@ inline Mesh CreateQuad() {
     };
 
     return Mesh(vertices, indices);
+}
+
+inline Mesh2D CreateUIQuad(const glm::vec4& color = glm::vec4{1.0f}) {
+    std::vector<Vertex2D> vertices {
+        { glm::vec2(-0.5f, 0.5f), glm::vec2(0.0f, 0.0f), color},
+		{ glm::vec2(0.5f, 0.5f), glm::vec2(1.0f, 0.0f), color},
+		{ glm::vec2(-0.5f, -0.5f), glm::vec2(0.0f, 1.0f), color},
+		{ glm::vec2(0.5f, -0.5f), glm::vec2(1.0f, 1.0f), color},
+    };
+
+    std::vector<uint32_t> indices {
+        0, 1, 2,
+        1, 3, 2
+    };
+
+    return Mesh2D(vertices, indices);
 }

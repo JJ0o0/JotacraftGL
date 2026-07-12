@@ -12,7 +12,8 @@ enum class BlockType : uint8_t {
     Dirt,
     SimpleGrass,
     Grass,
-    Oak,
+    OakLog,
+    OakPlanks,
     Count
 };
 
@@ -26,7 +27,8 @@ inline static std::string BlockTypeToString(BlockType type) {
         case BlockType::Dirt: return "Dirt";
         case BlockType::SimpleGrass: return "Simple Grass";
         case BlockType::Grass: return "Grass";
-        case BlockType::Oak: return "Oak";
+        case BlockType::OakLog: return "Oak Log";
+        case BlockType::OakPlanks: return "Oak Planks";
         default: return "Unknown";
     }
 }

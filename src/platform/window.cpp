@@ -66,7 +66,11 @@ Window::Window(const WindowProperties& properties)
     }
     
     glfwSetInputMode(m_handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
     glViewport(0, 0, m_properties.Width, m_properties.Height);
     glfwSwapInterval(1);
 
