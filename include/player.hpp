@@ -41,8 +41,12 @@ class Player {
         AABB GetAABB() const;
 
         glm::vec3 GetEyePosition() const;
+
+        void SetPosition(const glm::vec3& position) { m_position = position; }
         glm::vec3 GetPosition() const { return m_position; }
+
         glm::vec3 GetVelocity() const { return m_velocity; }
+
         Camera& GetCamera() { return m_camera; }
         const Camera& GetCamera() const { return m_camera; }
     private:

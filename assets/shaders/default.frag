@@ -19,7 +19,7 @@ void main() {
     float sky = SkyLight / 15.0;
     sky = max(sky, 0.05);
 
-    vec3 ambient = vec3(0.25);
+    vec3 ambient = vec3(0.4);
     vec3 sunDirection = normalize(uSun.Direction);
     float ao = mix(0.4, 1.0, AO / 3.0);
 

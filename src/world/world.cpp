@@ -1,8 +1,10 @@
 #include <world/world.hpp>
+#include <world/block_registry.hpp>
 #include <math.hpp>
 #include <cmath>
 #include <chrono>
 #include <iostream>
+#include <algorithm>
 
 WorldUpdateResult World::Update(const glm::vec3& playerPosition) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -14,6 +16,7 @@ WorldUpdateResult World::Update(const glm::vec3& playerPosition) {
 
     WorldUpdateResult result;
 
+    std::vector<ChunkPosition> missing;
     for (int dx = -m_settings.RenderDistance; dx <= m_settings.RenderDistance; dx++) {
         for (int dz = -m_settings.RenderDistance; dz <= m_settings.RenderDistance; dz++) {
             ChunkPosition pos{
@@ -23,21 +26,25 @@ WorldUpdateResult World::Update(const glm::vec3& playerPosition) {
 
             if (HasChunk(pos)) continue;
 
-            GenerateChunk(pos, 6);
-            result.Created.push_back(pos);
+            missing.push_back(pos);
         }
     }
 
-    for (auto it = m_chunks.begin(); it != m_chunks.end();) {
-        int dx = std::abs(it->first.x - playerChunk.x);
-        int dz = std::abs(it->first.z - playerChunk.z);
+    std::sort(missing.begin(), missing.end(), [&](const ChunkPosition& a, const ChunkPosition& b) {
+        int adx = a.x - playerChunk.x;
+        int adz = a.z - playerChunk.z;
+        int bdx = b.x - playerChunk.x;
+        int bdz = b.z - playerChunk.z;
 
-        if (dx > m_settings.RenderDistance + 1 || dz > m_settings.RenderDistance + 1) {
-            result.Removed.push_back(it->first);
-            it = m_chunks.erase(it);
-        } else {
-            ++it;
-        }
+        int distA = adx * adx + adz * adz;
+        int distB = bdx * bdx + bdz * bdz;
+
+        return distA < distB;
+    });
+
+    for (const ChunkPosition& pos : missing) {
+        GenerateChunk(pos);
+        result.Created.push_back(pos);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -50,11 +57,11 @@ WorldUpdateResult World::Update(const glm::vec3& playerPosition) {
     return result;
 }
 
-void World::GenerateChunk(const ChunkPosition& position, int groundHeight) {  
+void World::GenerateChunk(const ChunkPosition& position) {  
     auto start = std::chrono::high_resolution_clock::now();
   
     Chunk& chunk = m_chunks[position];
-    chunk.GenerateFlat(groundHeight);
+    chunk.GenerateTerrain(m_noise, position.x, position.z);
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -120,6 +127,17 @@ uint8_t World::GetSkyLight(int x, int y, int z) {
     int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE_Z);
 
     return chunk->GetSkyLight(localX, localY, localZ);
+}
+
+int World::GetSurfaceHeight(int x, int z) {
+    for (int y = Chunk::CHUNK_SIZE_Y - 1; y > 0; y--) {
+        BlockType block = GetBlock(x, y, z);
+        if (!BlockRegistry::Get(block).Solid) continue;
+
+        return y + 1;
+    }
+
+    return 0;
 }
 
 ChunkPosition World::WorldToChunkPosition(int x, int z) {

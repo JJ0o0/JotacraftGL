@@ -78,6 +78,8 @@ void Game::Initialize() {
 
     auto initResult = m_world.Update(m_player.GetPosition());
     m_worldRenderer.Update(m_world, initResult);
+
+    m_player.SetPosition({0, m_world.GetSurfaceHeight(0, 3), 3});
 }
 
 void Game::Update(float deltatime) {

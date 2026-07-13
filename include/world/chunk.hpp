@@ -12,7 +12,7 @@ class Chunk {
         static constexpr uint32_t CHUNK_SIZE_Z = 16;
 
         void GenerateFlat(int groundHeight);
-        void GenerateTerrain(const Noise& noise);
+        void GenerateTerrain(const Noise& noise, int chunkX, int chunkZ);
 
         uint8_t GetSkyLight(int x, int y, int z) const;
         void SetSkyLight(int x, int y, int z, uint8_t level);

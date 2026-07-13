@@ -27,11 +27,14 @@ void Chunk::GenerateFlat(int groundHeight) {
     }
 }
 
-void Chunk::GenerateTerrain(const Noise& noise) {
+void Chunk::GenerateTerrain(const Noise& noise, int chunkX, int chunkZ) {
     for (int x = 0; x < CHUNK_SIZE_X; x++) {
         for (int z = 0; z < CHUNK_SIZE_Z; z++) {
-            float value = noise.Sample(x, z);
-            int height = 32 + value * 16;
+            int worldX = chunkX * CHUNK_SIZE_X + x;
+            int worldZ = chunkZ * CHUNK_SIZE_Z + z;
+
+            float value = noise.Sample(worldX, worldZ);
+            int height = 32 + value * 26;
 
             for (int y = 0; y < CHUNK_SIZE_Y; y++) {
                 if (y >= height) {
@@ -40,16 +43,10 @@ void Chunk::GenerateTerrain(const Noise& noise) {
                 }
 
                 BlockType type = BlockType::Stone;
+                if (y == height - 1) type = BlockType::GrassBlock;
+                else if (y >= height - 4) type = BlockType::Dirt;
 
-                if (y == height - 1)
-                    type = BlockType::GrassBlock;
-
-                else if (y >= height - 4)
-                    type = BlockType::Dirt;
-
-                if (y == 0)
-                    type = BlockType::Bedrock;
-
+                if (y == 0) type = BlockType::Bedrock;
 
                 SetVoxel(x, y, z, type);
             }
