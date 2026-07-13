@@ -22,4 +22,5 @@ public:
 private:
     static void propagateSkyLight(World& world, std::queue<LightNode>& queue);
     static void removeSkyLight(World& world, std::queue<LightRemovalNode>& removalQueue, std::queue<LightNode>& relightQueue);
+    static bool blocksLight(World& world, glm::ivec3 position);
 };

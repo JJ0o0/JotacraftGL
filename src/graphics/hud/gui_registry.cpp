@@ -19,10 +19,12 @@ void BlockIconRegistry::Init() {
     s_textures[(size_t)BlockType::Bedrock] = {1, 1};
     s_textures[(size_t)BlockType::Brick] = {5, 0};
     s_textures[(size_t)BlockType::Dirt] = { 1, 0 };
-    s_textures[(size_t)BlockType::Grass] = { 2, 0};
+    s_textures[(size_t)BlockType::GrassBlock] = { 2, 0};
+    s_textures[(size_t)BlockType::Grass] = { 1, 2};
     s_textures[(size_t)BlockType::SimpleGrass] = {3, 0 };
     s_textures[(size_t)BlockType::OakLog] = {3, 1};
     s_textures[(size_t)BlockType::OakPlanks] = {4, 0};
+    s_textures[(size_t)BlockType::GlassBlock] = {0, 2};
 }
 
 const AtlasCoord& BlockIconRegistry::Get(BlockType type) {

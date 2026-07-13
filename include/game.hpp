@@ -25,14 +25,14 @@ class Game {
 
         std::array<BlockType, 9> m_hotbarBlocks {
             BlockType::Dirt,
-            BlockType::Grass,
+            BlockType::GrassBlock,
             BlockType::SimpleGrass,
             BlockType::Stone,
             BlockType::Cobblestone,
-            BlockType::Bedrock,
             BlockType::Brick,
             BlockType::OakLog,
-            BlockType::OakPlanks
+            BlockType::OakPlanks,
+            BlockType::GlassBlock
         };
 
         int m_selectedSlot = 0;

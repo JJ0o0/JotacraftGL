@@ -14,6 +14,11 @@ struct MeshData {
     std::vector<uint32_t> indices;
 };
 
+struct Meshes {
+    MeshData Opaque;
+    MeshData Transparent;
+};
+
 enum class FaceDirection {
     Top, Bottom,
     Front, Back,
@@ -22,9 +27,12 @@ enum class FaceDirection {
 
 class Mesher {
     public:
-        static MeshData GenerateMesh(World& world, const ChunkPosition& chunkPosition);
+        static Meshes GenerateMesh(World& world, const ChunkPosition& chunkPosition);
     private:
         static void addFace(MeshData& mesh, World& world, glm::vec3 position, glm::ivec3 neighborPosition, FaceDirection direction, BlockType type);
+        static void addCross(MeshData& mesh, World& world, glm::vec3 position, BlockType type);
         static FaceData getDataForFace(const BlockFaceTextures& textures, FaceDirection direction);
+        static bool isOccluder(World& world, glm::ivec3 position);
+        static bool shouldRenderFace(BlockType current, BlockType neighbor);
         static float calculateAO(World& world, glm::ivec3 side1, glm::ivec3 side2, glm::ivec3 corner);
 };

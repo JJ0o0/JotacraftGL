@@ -54,17 +54,21 @@ void Texture::ChangeImage(const std::string& filepath) {
     m_properties.Mipmaps = m_properties.MinFilter != TextureFilterOption::Linear && m_properties.MinFilter != TextureFilterOption::Nearest;
 
     GLenum format = GL_RGB;
+    GLenum internalFormat = GL_RGB8;
 
     switch (numChannels) {
-        case 1: format = GL_RED; break;
-        case 2: format = GL_RG; break;
-        case 4: format = GL_RGBA; break;
+        case 1: internalFormat = GL_R8; format = GL_RED;  break;
+        case 2: internalFormat = GL_RG8; format = GL_RG;   break;
+        case 3: internalFormat = GL_RGB8; format = GL_RGB;  break;
+        case 4: internalFormat = GL_RGBA8; format = GL_RGBA; break;
     }
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     glTexImage2D(
         GL_TEXTURE_2D,
         0,
-        format,
+        internalFormat,
         width, height, 0,
         format,
         GL_UNSIGNED_BYTE,

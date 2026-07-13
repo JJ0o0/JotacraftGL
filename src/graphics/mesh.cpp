@@ -38,6 +38,10 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(12 * sizeof(float)));
     glEnableVertexAttribArray(5);
 
+    // Receives Diffuse
+    glVertexAttribPointer(6, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(13 * sizeof(float)));
+    glEnableVertexAttribArray(6);
+
     glBindVertexArray(0);
 }
 
@@ -76,6 +80,8 @@ Mesh::~Mesh() {
 }
 
 void Mesh::Draw(DrawMode mode) const {
+    if (m_vao == 0) return;
+
     glBindVertexArray(m_vao);
     glDrawElements(static_cast<GLenum>(mode), m_indexCount, GL_UNSIGNED_INT, nullptr);
 }

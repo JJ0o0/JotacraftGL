@@ -1,4 +1,5 @@
 #include <player.hpp>
+#include <world/block_registry.hpp>
 
 void Player::Update(World& world, float deltatime) {
     m_velocity.y += GRAVITY * deltatime;
@@ -165,7 +166,8 @@ bool Player::collidesWithWorld(World& world, const AABB& box) const {
     for (int x = min.x; x <= max.x; x++) {
         for (int y = min.y; y <= max.y; y++) {
             for (int z = min.z; z <= max.z; z++) {
-                if (world.GetBlock(x, y, z) != BlockType::Air) return true;
+                BlockType block = world.GetBlock(x, y, z);
+                if (BlockRegistry::Get(block).Solid) return true;
             }
         }
     }

@@ -34,16 +34,24 @@ void WorldRenderer::Render(const Player& player) {
         m_shader.SetInt("uTexture", 0);
 
         m_atlas.Bind();
-            for (auto& [_, mesh] : m_chunkMeshes) mesh.Draw();
+            glDisable(GL_BLEND);
+            glDepthMask(GL_TRUE);
+                for (auto& [_, chunk] : m_chunkMeshes) chunk.Opaque.Draw();
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDepthMask(GL_FALSE);
+                for (auto& [_, chunk] : m_chunkMeshes) chunk.Transparent.Draw();
+            glDepthMask(GL_TRUE);
+            glDisable(GL_BLEND);
         m_atlas.Unbind();
     m_shader.Unbind();
 }
 
 void WorldRenderer::RegenerateChunk(World& world, const ChunkPosition& pos) {
     if (!world.GetChunk(pos)) return;
-    MeshData data = Mesher::GenerateMesh(world, pos);
-    
-    auto it = m_chunkMeshes.find(pos);
-    if (it != m_chunkMeshes.end()) it->second = Mesh(data.vertices, data.indices);
-    else m_chunkMeshes.emplace(pos, Mesh(data.vertices, data.indices));
+    Meshes data = Mesher::GenerateMesh(world, pos);
+
+    auto& chunkMesh = m_chunkMeshes[pos];
+    m_chunkMeshes[pos].Opaque = Mesh(data.Opaque.vertices, data.Opaque.indices);
+    m_chunkMeshes[pos].Transparent = Mesh(data.Transparent.vertices, data.Transparent.indices);
 }

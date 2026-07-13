@@ -1,4 +1,5 @@
 #include <graphics/light_engine.hpp>
+#include <world/block_registry.hpp>
 
 void LightEngine::InitializeSkyLight(World& world, const ChunkPosition& chunkPos) {
     std::queue<LightNode> queue;
@@ -9,7 +10,7 @@ void LightEngine::InitializeSkyLight(World& world, const ChunkPosition& chunkPos
             int worldZ = chunkPos.z * Chunk::CHUNK_SIZE + z;
 
             for (int y = Chunk::CHUNK_SIZE - 1; y >= 0; y--) {
-                if (world.GetBlock(worldX, y, worldZ) != BlockType::Air) break;
+                if (blocksLight(world, {worldX, y, worldZ})) break;
 
                 world.SetSkyLight(worldX, y, worldZ, 15);
                 queue.push({glm::ivec3(worldX, y, worldZ)});
@@ -35,7 +36,7 @@ void LightEngine::OnBlockPlaced(World& world, const glm::ivec3& position) {
 void LightEngine::OnBlockBroken(World& world, const glm::ivec3& position) {
     bool exposedToSky = true;
     for (int y = position.y + 1; y < Chunk::CHUNK_SIZE; y++) {
-        if (world.GetBlock(position.x, y, position.z) != BlockType::Air) {
+        if (blocksLight(world, {position.x, y, position.z})) {
             exposedToSky = false;
             break;
         }
@@ -82,7 +83,7 @@ void LightEngine::propagateSkyLight(World& world, std::queue<LightNode>& queue) 
 
         for (const auto& offset : offsets) {
             glm::ivec3 neighborPos = node.Position + offset;
-            if (world.GetBlock(neighborPos.x, neighborPos.y, neighborPos.z) != BlockType::Air) continue;
+            if (blocksLight(world, neighborPos)) continue;
 
             uint8_t decay = (offset.y == -1 && currentLight == 15) ? 0 : 1;
             uint8_t newLight = currentLight > decay ? currentLight - decay : 0;
@@ -109,7 +110,7 @@ void LightEngine::removeSkyLight(World& world, std::queue<LightRemovalNode>& rem
 
         for (const auto& offset : offsets) {
             glm::ivec3 neighborPos = node.Position + offset;
-            if (world.GetBlock(neighborPos.x, neighborPos.y, neighborPos.z) != BlockType::Air) continue;
+            if (blocksLight(world, neighborPos)) continue;
 
             uint8_t neighborLight = world.GetSkyLight(neighborPos.x, neighborPos.y, neighborPos.z);
             if (neighborLight == 0) continue;
@@ -125,4 +126,11 @@ void LightEngine::removeSkyLight(World& world, std::queue<LightRemovalNode>& rem
             }
         }
     }
+}
+
+bool LightEngine::blocksLight(World& world, glm::ivec3 position) {
+    BlockType block = world.GetBlock(position.x, position.y, position.z);
+
+    if (block == BlockType::Air) return false;
+    return BlockRegistry::Get(block).BlocksLight;
 }

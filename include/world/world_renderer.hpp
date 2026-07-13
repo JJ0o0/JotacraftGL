@@ -1,5 +1,6 @@
 #pragma once
 
+#include <graphics/chunk_mesh.hpp>
 #include <graphics/light.hpp>
 #include <graphics/shader.hpp>
 #include <graphics/mesh.hpp>
@@ -20,7 +21,7 @@ class WorldRenderer {
 
         const AtlasTexture& GetAtlas() const { return m_atlas; }
     private:
-        std::unordered_map<ChunkPosition, Mesh> m_chunkMeshes;
+        std::unordered_map<ChunkPosition, ChunkMesh> m_chunkMeshes;
 
         Shader m_shader;
         AtlasTexture m_atlas;

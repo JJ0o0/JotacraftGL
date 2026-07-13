@@ -9,6 +9,7 @@ struct Vertex {
     glm::vec3 Color{1.0f};
     float AO = 1.0f;
     float SkyLight = 15.0f;
+    float ReceivesDiffuse = 1.0f;
 };
 
 struct Vertex2D {

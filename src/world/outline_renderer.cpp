@@ -19,7 +19,13 @@ void OutlineRenderer::Render(const Player& player) {
         m_shader.SetMat4("uProjection", player.GetCamera().GetProjectionMatrix());
         m_shader.SetVec3("uColor", glm::vec3(0.0f));
         m_shader.SetFloat("uThickness", 0.008f);
-
-        m_mesh.Draw();
+        
+        glDisable(GL_CULL_FACE);
+        glDisable(GL_CULL_FACE);
+        glDepthMask(GL_FALSE);
+            m_mesh.Draw();
+        glDepthMask(GL_TRUE);
+        glEnable(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE);
     m_shader.Unbind();
 }

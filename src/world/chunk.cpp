@@ -13,7 +13,7 @@ void Chunk::GenerateFlat(int groundHeight) {
                     continue;
                 }
 
-                BlockType type = BlockType::Grass;
+                BlockType type = BlockType::GrassBlock;
 
                 if (y < (groundHeight - 1) && y >= (groundHeight / 2)) {
                     type = BlockType::Dirt;

@@ -9,13 +9,13 @@ class Hotbar {
     private:
         std::array<BlockType, 9> m_blocks {
             BlockType::Dirt,
-            BlockType::Grass,
+            BlockType::GrassBlock,
             BlockType::SimpleGrass,
             BlockType::Stone,
             BlockType::Cobblestone,
-            BlockType::Bedrock,
             BlockType::Brick,
             BlockType::OakLog,
-            BlockType::OakPlanks
+            BlockType::OakPlanks,
+            BlockType::GlassBlock,
         };
 };

@@ -5,6 +5,7 @@ in vec2 TexCoord;
 in vec3 Color;
 in float AO;
 in float SkyLight;
+in float ReceivesDiffuse;
 
 struct SunLight {
     vec3 Color;
@@ -19,14 +20,17 @@ void main() {
     sky = max(sky, 0.05);
 
     vec3 ambient = vec3(0.25);
-
     vec3 sunDirection = normalize(uSun.Direction);
-    float diffuse = max(dot(Normal, -sunDirection), 0.0);
-
     float ao = mix(0.4, 1.0, AO / 3.0);
 
-    vec3 lighting = (ambient + diffuse * uSun.Color) * sky * ao;
+    float diffuseStrength = ReceivesDiffuse;
+    float diffuse = max(dot(Normal, -sunDirection), 0.0);
+    diffuse *= diffuseStrength;
+
+    vec3 lighting = (ambient + diffuse * uSun.Color + (1.0 - diffuseStrength) * vec3(1.0)) * sky * ao;
+
     vec4 textureColor = texture(uTexture, TexCoord);
 
+    if (textureColor.a < 0.1) discard;
     FragPos = vec4(textureColor.rgb * Color * lighting, textureColor.a);
 }
