@@ -7,6 +7,7 @@
 #include <graphics/atlas_texture.hpp>
 #include <player.hpp>
 #include <world/world.hpp>
+#include <queue>
 
 class WorldRenderer {
     public:
@@ -22,6 +23,8 @@ class WorldRenderer {
         const AtlasTexture& GetAtlas() const { return m_atlas; }
     private:
         std::unordered_map<ChunkPosition, ChunkMesh> m_chunkMeshes;
+        std::queue<ChunkPosition> m_lightQueue;
+        std::queue<ChunkPosition> m_meshQueue;
 
         Shader m_shader;
         AtlasTexture m_atlas;

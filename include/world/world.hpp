@@ -29,6 +29,8 @@ class World {
         uint8_t GetSkyLight(int x, int y, int z);
         
         ChunkPosition WorldToChunkPosition(int x, int z);
+
+        const auto& GetChunks() const { return m_chunks; }
     private:
         std::unordered_map<ChunkPosition, Chunk> m_chunks{};
 

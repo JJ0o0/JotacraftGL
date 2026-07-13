@@ -19,13 +19,13 @@ void WorldInteraction::PlaceBlock(World& world, Player& player, WorldRenderer& r
     LightEngine::OnBlockPlaced(world, pos);
     renderer.RegenerateChunk(world, chunkPos);
 
-    int localX = pos.x - (chunkPos.x * Chunk::CHUNK_SIZE);
-    int localZ = pos.z - (chunkPos.z * Chunk::CHUNK_SIZE);
+    int localX = pos.x - (chunkPos.x * Chunk::CHUNK_SIZE_X);
+    int localZ = pos.z - (chunkPos.z * Chunk::CHUNK_SIZE_Z);
 
     if (localX == 0) renderer.RegenerateChunk(world, {chunkPos.x - 1, chunkPos.z});
-    if (localX == Chunk::CHUNK_SIZE - 1) renderer.RegenerateChunk(world, {chunkPos.x + 1, chunkPos.z});
+    if (localX == Chunk::CHUNK_SIZE_X - 1) renderer.RegenerateChunk(world, {chunkPos.x + 1, chunkPos.z});
     if (localZ == 0) renderer.RegenerateChunk(world, {chunkPos.x, chunkPos.z - 1});
-    if (localZ == Chunk::CHUNK_SIZE - 1) renderer.RegenerateChunk(world, {chunkPos.x, chunkPos.z + 1});
+    if (localZ == Chunk::CHUNK_SIZE_Z - 1) renderer.RegenerateChunk(world, {chunkPos.x, chunkPos.z + 1});
 }
 
 void WorldInteraction::BreakBlock(World& world, WorldRenderer& renderer, const RaycastResult& target) {
@@ -38,11 +38,11 @@ void WorldInteraction::BreakBlock(World& world, WorldRenderer& renderer, const R
     LightEngine::OnBlockBroken(world, pos);
     renderer.RegenerateChunk(world, chunkPos);
 
-    int localX = pos.x - (chunkPos.x * Chunk::CHUNK_SIZE);
-    int localZ = pos.z - (chunkPos.z * Chunk::CHUNK_SIZE);
+    int localX = pos.x - (chunkPos.x * Chunk::CHUNK_SIZE_X);
+    int localZ = pos.z - (chunkPos.z * Chunk::CHUNK_SIZE_Z);
 
     if (localX == 0) renderer.RegenerateChunk(world, {chunkPos.x - 1, chunkPos.z});
-    if (localX == Chunk::CHUNK_SIZE - 1) renderer.RegenerateChunk(world, {chunkPos.x + 1, chunkPos.z});
+    if (localX == Chunk::CHUNK_SIZE_X - 1) renderer.RegenerateChunk(world, {chunkPos.x + 1, chunkPos.z});
     if (localZ == 0) renderer.RegenerateChunk(world, {chunkPos.x, chunkPos.z - 1});
-    if (localZ == Chunk::CHUNK_SIZE - 1) renderer.RegenerateChunk(world, {chunkPos.x, chunkPos.z + 1});
+    if (localZ == Chunk::CHUNK_SIZE_Z - 1) renderer.RegenerateChunk(world, {chunkPos.x, chunkPos.z + 1});
 }

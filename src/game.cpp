@@ -10,6 +10,8 @@
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <algorithm>
+#include <chrono>
+#include <iostream>
 
 Game::Game(Window& window) 
     : m_window(window) {}
@@ -88,7 +90,10 @@ void Game::Update(float deltatime) {
 }
 
 void Game::Render() {
+    auto start = std::chrono::high_resolution_clock::now();
     m_worldRenderer.Render(m_player);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << "Render: " << std::chrono::duration<float, std::milli>(end-start).count() << " ms\n";
     m_outlineRenderer.Render(m_player);
 
     m_guiRenderer.Render(

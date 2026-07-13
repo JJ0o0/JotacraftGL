@@ -1,22 +1,32 @@
 #include <graphics/light_engine.hpp>
+#include <iostream>
 #include <world/block_registry.hpp>
 
-void LightEngine::InitializeSkyLight(World& world, const ChunkPosition& chunkPos) {
+void LightEngine::InitializeSkyLight(World& world, const std::vector<ChunkPosition>& chunks){
     std::queue<LightNode> queue;
 
-    for (int x = 0; x < Chunk::CHUNK_SIZE; x++) {
-        for (int z = 0; z < Chunk::CHUNK_SIZE; z++) {
-            int worldX = chunkPos.x * Chunk::CHUNK_SIZE + x;
-            int worldZ = chunkPos.z * Chunk::CHUNK_SIZE + z;
+    for (const auto& chunkPos : chunks) {
+        for (int x = 0; x < Chunk::CHUNK_SIZE_X; x++) {
+            for (int z = 0; z < Chunk::CHUNK_SIZE_Z; z++) {
+                int worldX = chunkPos.x * Chunk::CHUNK_SIZE_X + x;
+                int worldZ = chunkPos.z * Chunk::CHUNK_SIZE_Z + z;
 
-            for (int y = Chunk::CHUNK_SIZE - 1; y >= 0; y--) {
-                if (blocksLight(world, {worldX, y, worldZ})) break;
+                int topY = Chunk::CHUNK_SIZE_Y - 1;
 
-                world.SetSkyLight(worldX, y, worldZ, 15);
-                queue.push({glm::ivec3(worldX, y, worldZ)});
+                for (; topY >= 0; topY--) {
+                    if (blocksLight(world, {worldX, topY, worldZ})) break;                    
+                    world.SetSkyLight(worldX, topY, worldZ, 15);
+
+                    queue.push({
+                        {worldX, topY, worldZ},
+                        15
+                    });
+                }
             }
         }
-    }
+
+        world.GetChunk(chunkPos)->MarkLightInitialized();
+    }  
 
     propagateSkyLight(world, queue);
 }
@@ -35,7 +45,7 @@ void LightEngine::OnBlockPlaced(World& world, const glm::ivec3& position) {
 
 void LightEngine::OnBlockBroken(World& world, const glm::ivec3& position) {
     bool exposedToSky = true;
-    for (int y = position.y + 1; y < Chunk::CHUNK_SIZE; y++) {
+    for (int y = position.y + 1; y < Chunk::CHUNK_SIZE_Y; y++) {
         if (blocksLight(world, {position.x, y, position.z})) {
             exposedToSky = false;
             break;
@@ -64,37 +74,79 @@ void LightEngine::OnBlockBroken(World& world, const glm::ivec3& position) {
     world.SetSkyLight(position.x, position.y, position.z, newLight);
 
     std::queue<LightNode> queue;
-    queue.push({position});
+    queue.push({position, newLight});
     propagateSkyLight(world, queue);
 }
 
 void LightEngine::propagateSkyLight(World& world, std::queue<LightNode>& queue) {
+    size_t processed = 0;
     static const glm::ivec3 offsets[6] = {
         { 1, 0, 0}, {-1, 0, 0},
         { 0, 1, 0}, { 0,-1, 0},
         { 0, 0, 1}, { 0, 0,-1}
     };
 
+    ChunkPosition cachedPos{INT32_MIN, INT32_MIN};
+    Chunk* cachedChunk = nullptr;
+
     while (!queue.empty()) {
         LightNode node = queue.front();
         queue.pop();
 
-        uint8_t currentLight = world.GetSkyLight(node.Position.x, node.Position.y, node.Position.z);
+        processed++;
+        if (processed > 5000000) throw std::runtime_error("SkyLight propagation overflow");
+
+        ChunkPosition nodeChunkPos = world.WorldToChunkPosition(node.Position.x, node.Position.z);
+        if (nodeChunkPos.x != cachedPos.x || nodeChunkPos.z != cachedPos.z) {
+            cachedChunk = world.GetChunk(nodeChunkPos);
+            cachedPos = nodeChunkPos;
+        }
+        if (!cachedChunk) continue;
+
+        int localX = node.Position.x - nodeChunkPos.x * Chunk::CHUNK_SIZE_X;
+        int localZ = node.Position.z - nodeChunkPos.z * Chunk::CHUNK_SIZE_Z;
+        int localY = node.Position.y;
+
+        uint8_t currentLight = node.Value;
 
         for (const auto& offset : offsets) {
-            glm::ivec3 neighborPos = node.Position + offset;
-            if (blocksLight(world, neighborPos)) continue;
+            int ny = localY + offset.y;
+            if (ny < 0 || ny >= static_cast<int>(Chunk::CHUNK_SIZE_Y)) continue;
+
+            int nx = localX + offset.x;
+            int nz = localZ + offset.z;
+            bool local = nx >= 0 && nx < static_cast<int>(Chunk::CHUNK_SIZE_X) &&
+                         nz >= 0 && nz < static_cast<int>(Chunk::CHUNK_SIZE_Z);
+
+            glm::ivec3 neighborGlobal = node.Position + offset;
+            Chunk* neighborChunk;
+            int lx, lz;
+
+            if (local) {
+                neighborChunk = cachedChunk;
+                lx = nx; lz = nz;
+            } else {
+                ChunkPosition neighborChunkPos = world.WorldToChunkPosition(neighborGlobal.x, neighborGlobal.z);
+                neighborChunk = world.GetChunk(neighborChunkPos);
+                if (!neighborChunk || !neighborChunk->IsLightInitialized()) continue;
+                lx = neighborGlobal.x - neighborChunkPos.x * Chunk::CHUNK_SIZE_X;
+                lz = neighborGlobal.z - neighborChunkPos.z * Chunk::CHUNK_SIZE_Z;
+            }
+
+            if (blocksLightLocal(neighborChunk, lx, ny, lz)) continue;
 
             uint8_t decay = (offset.y == -1 && currentLight == 15) ? 0 : 1;
             uint8_t newLight = currentLight > decay ? currentLight - decay : 0;
 
-            uint8_t neighborLight = world.GetSkyLight(neighborPos.x, neighborPos.y, neighborPos.z);
+            uint8_t neighborLight = neighborChunk->GetSkyLight(lx, ny, lz);
             if (newLight > neighborLight) {
-                world.SetSkyLight(neighborPos.x, neighborPos.y, neighborPos.z, newLight);
-                queue.push({neighborPos});
+                neighborChunk->SetSkyLight(lx, ny, lz, newLight);
+                queue.push({neighborGlobal, newLight});
             }
         }
     }
+
+    std::cout << "Light nodes processed: " << processed << "\n";
 }
 
 void LightEngine::removeSkyLight(World& world, std::queue<LightRemovalNode>& removalQueue, std::queue<LightNode>& relightQueue) {
@@ -104,25 +156,61 @@ void LightEngine::removeSkyLight(World& world, std::queue<LightRemovalNode>& rem
         { 0, 0, 1}, { 0, 0,-1}
     };
 
+    ChunkPosition cachedPos{INT32_MIN, INT32_MIN};
+    Chunk* cachedChunk = nullptr;
+
     while (!removalQueue.empty()) {
         LightRemovalNode node = removalQueue.front();
         removalQueue.pop();
 
-        for (const auto& offset : offsets) {
-            glm::ivec3 neighborPos = node.Position + offset;
-            if (blocksLight(world, neighborPos)) continue;
+        ChunkPosition nodeChunkPos = world.WorldToChunkPosition(node.Position.x, node.Position.z);
+        if (nodeChunkPos.x != cachedPos.x || nodeChunkPos.z != cachedPos.z) {
+            cachedChunk = world.GetChunk(nodeChunkPos);
+            cachedPos = nodeChunkPos;
+        }
+        if (!cachedChunk) continue;
 
-            uint8_t neighborLight = world.GetSkyLight(neighborPos.x, neighborPos.y, neighborPos.z);
+        int localX = node.Position.x - nodeChunkPos.x * Chunk::CHUNK_SIZE_X;
+        int localZ = node.Position.z - nodeChunkPos.z * Chunk::CHUNK_SIZE_Z;
+        int localY = node.Position.y;
+
+        for (const auto& offset : offsets) {
+            int ny = localY + offset.y;
+            if (ny < 0 || ny >= static_cast<int>(Chunk::CHUNK_SIZE_Y)) continue;
+
+            int nx = localX + offset.x;
+            int nz = localZ + offset.z;
+            bool local = nx >= 0 && nx < static_cast<int>(Chunk::CHUNK_SIZE_X) &&
+                         nz >= 0 && nz < static_cast<int>(Chunk::CHUNK_SIZE_Z);
+
+            glm::ivec3 neighborGlobal = node.Position + offset;
+            Chunk* neighborChunk;
+            int lx, lz;
+
+            if (local) {
+                neighborChunk = cachedChunk;
+                lx = nx; lz = nz;
+            } else {
+                ChunkPosition neighborChunkPos = world.WorldToChunkPosition(neighborGlobal.x, neighborGlobal.z);
+                neighborChunk = world.GetChunk(neighborChunkPos);
+                if (!neighborChunk) continue;
+                lx = neighborGlobal.x - neighborChunkPos.x * Chunk::CHUNK_SIZE_X;
+                lz = neighborGlobal.z - neighborChunkPos.z * Chunk::CHUNK_SIZE_Z;
+            }
+
+            if (blocksLightLocal(neighborChunk, lx, ny, lz)) continue;
+
+            uint8_t neighborLight = neighborChunk->GetSkyLight(lx, ny, lz);
             if (neighborLight == 0) continue;
 
             bool noDecay = (offset.y == -1 && node.Value == 15);
             bool causedByNode = noDecay ? (neighborLight == node.Value) : (neighborLight < node.Value);
 
             if (causedByNode) {
-                world.SetSkyLight(neighborPos.x, neighborPos.y, neighborPos.z, 0);
-                removalQueue.push({neighborPos, neighborLight});
+                neighborChunk->SetSkyLight(lx, ny, lz, 0);
+                removalQueue.push({neighborGlobal, neighborLight});
             } else {
-                relightQueue.push({neighborPos});
+                relightQueue.push({neighborGlobal, neighborLight});
             }
         }
     }
@@ -131,6 +219,12 @@ void LightEngine::removeSkyLight(World& world, std::queue<LightRemovalNode>& rem
 bool LightEngine::blocksLight(World& world, glm::ivec3 position) {
     BlockType block = world.GetBlock(position.x, position.y, position.z);
 
+    if (block == BlockType::Air) return false;
+    return BlockRegistry::Get(block).BlocksLight;
+}
+
+bool LightEngine::blocksLightLocal(Chunk* chunk, int x, int y, int z) {
+    BlockType block = chunk->GetVoxel(x, y, z);
     if (block == BlockType::Air) return false;
     return BlockRegistry::Get(block).BlocksLight;
 }

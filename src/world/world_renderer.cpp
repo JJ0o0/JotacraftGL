@@ -1,19 +1,43 @@
 #include <world/world_renderer.hpp>
 #include <graphics/light_engine.hpp>
 #include <graphics/mesher.hpp>
+#include <iostream>
+#include <chrono>
 
 void WorldRenderer::Update(World& world, const WorldUpdateResult& update) {
-    for (const auto& pos : update.Created) {
-        LightEngine::InitializeSkyLight(world, pos);
+    for (auto& pos : update.Created) {
+        m_lightQueue.push(pos);
     }
-    
-    for (const auto& pos : update.Created) {
-        RegenerateChunk(world, pos);
 
-        RegenerateChunk(world, {pos.x - 1, pos.z});
-        RegenerateChunk(world, {pos.x + 1, pos.z});
-        RegenerateChunk(world, {pos.x, pos.z - 1});
-        RegenerateChunk(world, {pos.x, pos.z + 1});
+    int lightBudget = 1;
+    while (!m_lightQueue.empty() && lightBudget--) {
+        ChunkPosition pos = m_lightQueue.front();
+        m_lightQueue.pop();
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        LightEngine::InitializeSkyLight(world, {pos});
+
+        auto end = std::chrono::high_resolution_clock::now();
+
+        std::cout
+            << "Light: "
+            << std::chrono::duration<float, std::milli>(end-start).count()
+            << " ms\n";
+
+        m_meshQueue.push(pos);
+        m_meshQueue.push({pos.x - 1, pos.z});
+        m_meshQueue.push({pos.x + 1, pos.z});
+        m_meshQueue.push({pos.x, pos.z - 1});
+        m_meshQueue.push({pos.x, pos.z + 1});
+    }
+
+    int meshBudget = 2;
+    while (!m_meshQueue.empty() && meshBudget--) {
+        auto pos = m_meshQueue.front();
+        m_meshQueue.pop();
+
+        RegenerateChunk(world, pos);
     }
 
     for (const auto& pos : update.Removed) {
@@ -49,9 +73,13 @@ void WorldRenderer::Render(const Player& player) {
 
 void WorldRenderer::RegenerateChunk(World& world, const ChunkPosition& pos) {
     if (!world.GetChunk(pos)) return;
-    Meshes data = Mesher::GenerateMesh(world, pos);
 
-    auto& chunkMesh = m_chunkMeshes[pos];
+    auto start = std::chrono::high_resolution_clock::now();
+    Meshes data = Mesher::GenerateMesh(world, pos);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout << "Mesh: " << std::chrono::duration<float, std::milli>(end-start).count() << " ms\n";
+
     m_chunkMeshes[pos].Opaque = Mesh(data.Opaque.vertices, data.Opaque.indices);
     m_chunkMeshes[pos].Transparent = Mesh(data.Transparent.vertices, data.Transparent.indices);
 }

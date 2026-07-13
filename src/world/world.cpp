@@ -1,8 +1,12 @@
 #include <world/world.hpp>
 #include <math.hpp>
 #include <cmath>
+#include <chrono>
+#include <iostream>
 
 WorldUpdateResult World::Update(const glm::vec3& playerPosition) {
+    auto start = std::chrono::high_resolution_clock::now();
+
     ChunkPosition playerChunk = WorldToChunkPosition(
         static_cast<int>(std::floor(playerPosition.x)),
         static_cast<int>(std::floor(playerPosition.z))
@@ -36,12 +40,28 @@ WorldUpdateResult World::Update(const glm::vec3& playerPosition) {
         }
     }
 
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout
+        << "World Update: "
+        << std::chrono::duration<float, std::milli>(end - start).count()
+        << " ms\n";
+
     return result;
 }
 
-void World::GenerateChunk(const ChunkPosition& position, int groundHeight) {    
+void World::GenerateChunk(const ChunkPosition& position, int groundHeight) {  
+    auto start = std::chrono::high_resolution_clock::now();
+  
     Chunk& chunk = m_chunks[position];
     chunk.GenerateFlat(groundHeight);
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout
+        << "GenerateChunk: "
+        << std::chrono::duration<float, std::milli>(end-start).count()
+        << " ms\n";
 }
 
 void World::RemoveChunk(const ChunkPosition& pos) { m_chunks.erase(pos); }
@@ -51,9 +71,9 @@ void World::SetBlock(int x, int y, int z, BlockType type) {
     Chunk* chunk = GetChunk(chunkPosition);
     if (!chunk) return;
 
-    int localX = x - (chunkPosition.x * Chunk::CHUNK_SIZE);
+    int localX = x - (chunkPosition.x * Chunk::CHUNK_SIZE_X);
     int localY = y;
-    int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE);
+    int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE_Z);
 
     chunk->SetVoxel(localX, localY, localZ, type);
 }
@@ -63,9 +83,9 @@ void World::SetSkyLight(int x, int y, int z, uint8_t level) {
     Chunk* chunk = GetChunk(chunkPosition);
     if (!chunk) return;
 
-    int localX = x - (chunkPosition.x * Chunk::CHUNK_SIZE);
+    int localX = x - (chunkPosition.x * Chunk::CHUNK_SIZE_X);
     int localY = y;
-    int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE);
+    int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE_Z);
 
     chunk->SetSkyLight(localX, localY, localZ, level);
 }
@@ -83,9 +103,9 @@ BlockType World::GetBlock(int x, int y, int z) {
     Chunk* chunk = GetChunk(chunkPosition);
     if (!chunk) return BlockType::Air;
 
-    int localX = x - (chunkPosition.x * Chunk::CHUNK_SIZE);
+    int localX = x - (chunkPosition.x * Chunk::CHUNK_SIZE_X);
     int localY = y;
-    int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE);
+    int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE_Z);
 
     return chunk->GetVoxel(localX, localY, localZ);
 }
@@ -95,16 +115,16 @@ uint8_t World::GetSkyLight(int x, int y, int z) {
     Chunk* chunk = GetChunk(chunkPosition);
     if (!chunk) return 0;
 
-    int localX = x - (chunkPosition.x * Chunk::CHUNK_SIZE);
+    int localX = x - (chunkPosition.x * Chunk::CHUNK_SIZE_X);
     int localY = y;
-    int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE);
+    int localZ = z - (chunkPosition.z * Chunk::CHUNK_SIZE_Z);
 
     return chunk->GetSkyLight(localX, localY, localZ);
 }
 
 ChunkPosition World::WorldToChunkPosition(int x, int z) {
     return ChunkPosition{
-        FloorDivision(x, Chunk::CHUNK_SIZE),
-        FloorDivision(z, Chunk::CHUNK_SIZE)
+        FloorDivision(x, Chunk::CHUNK_SIZE_X),
+        FloorDivision(z, Chunk::CHUNK_SIZE_Z)
     };
 }

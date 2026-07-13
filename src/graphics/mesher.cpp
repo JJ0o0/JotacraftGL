@@ -1,24 +1,60 @@
 #include <graphics/mesher.hpp>
 #include <world/block_registry.hpp>
 
+BlockType Mesher::sampleBlock(World& world, Chunk* chunk, const ChunkPosition& chunkPos, int lx, int ly, int lz) {
+    if (lx >= 0 && lx < static_cast<int>(Chunk::CHUNK_SIZE_X) &&
+        lz >= 0 && lz < static_cast<int>(Chunk::CHUNK_SIZE_Z)) {
+        return chunk->GetVoxel(lx, ly, lz); // local, sem hash -- o próprio Chunk já trata ly fora dos limites
+    }
+
+    int worldX = chunkPos.x * Chunk::CHUNK_SIZE_X + lx;
+    int worldZ = chunkPos.z * Chunk::CHUNK_SIZE_Z + lz;
+    return world.GetBlock(worldX, ly, worldZ); // cruzou borda horizontal, precisa do World mesmo
+}
+
+uint8_t Mesher::sampleSkyLight(World& world, Chunk* chunk, const ChunkPosition& chunkPos, int lx, int ly, int lz) {
+    if (lx >= 0 && lx < static_cast<int>(Chunk::CHUNK_SIZE_X) &&
+        lz >= 0 && lz < static_cast<int>(Chunk::CHUNK_SIZE_Z)) {
+        return chunk->GetSkyLight(lx, ly, lz);
+    }
+
+    int worldX = chunkPos.x * Chunk::CHUNK_SIZE_X + lx;
+    int worldZ = chunkPos.z * Chunk::CHUNK_SIZE_Z + lz;
+    return world.GetSkyLight(worldX, ly, worldZ);
+}
+
+bool Mesher::sampleOccluder(World& world, Chunk* chunk, const ChunkPosition& chunkPos, int lx, int ly, int lz) {
+    BlockType block = sampleBlock(world, chunk, chunkPos, lx, ly, lz);
+    if (block == BlockType::Air) return false;
+    return BlockRegistry::Get(block).BlocksLight;
+}
+
 Meshes Mesher::GenerateMesh(World& world, const ChunkPosition& chunkPosition) {
     Meshes meshes;
-    
+
     Chunk* chunk = world.GetChunk(chunkPosition);
     if (!chunk) return meshes;
-    
-    for (int x = 0; x < Chunk::CHUNK_SIZE; x++) {
-        for (int y = 0; y < Chunk::CHUNK_SIZE; y++) {
-            for (int z = 0; z < Chunk::CHUNK_SIZE; z++) {
-                BlockType block = chunk->GetVoxel(x, y, z);
+
+    meshes.Opaque.vertices.reserve(20000);
+    meshes.Opaque.indices.reserve(30000);
+    meshes.Transparent.vertices.reserve(20000);
+    meshes.Transparent.indices.reserve(30000);
+
+    for (int x = 0; x < static_cast<int>(Chunk::CHUNK_SIZE_X); x++) {
+        for (int y = 0; y < static_cast<int>(Chunk::CHUNK_SIZE_Y); y++) {
+            for (int z = 0; z < static_cast<int>(Chunk::CHUNK_SIZE_Z); z++) {
+                BlockType block = chunk->GetVoxel(x, y, z); // sempre local aqui, é o próprio voxel do loop
                 if (block == BlockType::Air) continue;
-                
-                int worldX = chunkPosition.x * Chunk::CHUNK_SIZE + x;
-                int worldY = y;
-                int worldZ = chunkPosition.z * Chunk::CHUNK_SIZE + z;
-                
+
+                glm::ivec3 localPos{x, y, z};
+                glm::ivec3 worldPos{
+                    chunkPosition.x * static_cast<int>(Chunk::CHUNK_SIZE_X) + x,
+                    y,
+                    chunkPosition.z * static_cast<int>(Chunk::CHUNK_SIZE_Z) + z
+                };
+
                 const BlockData& data = BlockRegistry::Get(block);
-                MeshData* mesh;
+                MeshData* mesh = nullptr;
 
                 switch (data.Render) {
                     case RenderType::Opaque:
@@ -28,38 +64,28 @@ Meshes Mesher::GenerateMesh(World& world, const ChunkPosition& chunkPosition) {
                         mesh = &meshes.Transparent;
                         break;
                     case RenderType::Cross:
-                        addCross(*mesh, world, { worldX, worldY, worldZ }, block);
+                        addCross(meshes.Opaque, world, chunk, chunkPosition, localPos, worldPos, block);
                         continue;
                 }
 
-                BlockType neighbor = world.GetBlock(worldX, worldY + 1, worldZ);
-                if (shouldRenderFace(block, neighbor)) {
-                    addFace(*mesh, world, {worldX, worldY, worldZ}, {worldX, worldY + 1, worldZ}, FaceDirection::Top, block);
-                }
+                static const glm::ivec3 offsets[6] = {
+                    { 0, 1, 0}, { 0,-1, 0},
+                    { 0, 0, 1}, { 0, 0,-1},
+                    { 1, 0, 0}, {-1, 0, 0}
+                };
+                static const FaceDirection dirs[6] = {
+                    FaceDirection::Top, FaceDirection::Bottom,
+                    FaceDirection::Front, FaceDirection::Back,
+                    FaceDirection::Right, FaceDirection::Left
+                };
 
-                neighbor = world.GetBlock(worldX, worldY - 1, worldZ);
-                if (shouldRenderFace(block, neighbor)) {
-                    addFace(*mesh, world, {worldX, worldY, worldZ}, {worldX, worldY - 1, worldZ}, FaceDirection::Bottom, block);
-                }
+                for (int i = 0; i < 6; i++) {
+                    glm::ivec3 nLocal = localPos + offsets[i];
+                    BlockType neighbor = sampleBlock(world, chunk, chunkPosition, nLocal.x, nLocal.y, nLocal.z);
 
-                neighbor = world.GetBlock(worldX, worldY, worldZ + 1);
-                if (shouldRenderFace(block, neighbor)) {
-                    addFace(*mesh, world, {worldX, worldY, worldZ},{worldX, worldY, worldZ + 1}, FaceDirection::Front, block);
-                }
-
-                neighbor = world.GetBlock(worldX, worldY, worldZ - 1);
-                if (shouldRenderFace(block, neighbor)) {
-                    addFace(*mesh, world, {worldX, worldY, worldZ}, {worldX, worldY, worldZ - 1}, FaceDirection::Back, block);
-                }
-
-                neighbor = world.GetBlock(worldX + 1, worldY, worldZ);
-                if (shouldRenderFace(block, neighbor)) {
-                    addFace(*mesh, world, {worldX, worldY, worldZ}, {worldX + 1, worldY, worldZ}, FaceDirection::Right, block);
-                }
-
-                neighbor = world.GetBlock(worldX - 1, worldY, worldZ);
-                if (shouldRenderFace(block, neighbor)) {
-                    addFace(*mesh, world, {worldX, worldY, worldZ}, {worldX - 1, worldY, worldZ}, FaceDirection::Left, block);
+                    if (shouldRenderFace(block, neighbor)) {
+                        addFace(*mesh, world, chunk, chunkPosition, localPos, worldPos, nLocal, dirs[i], block);
+                    }
                 }
             }
         }
@@ -68,302 +94,108 @@ Meshes Mesher::GenerateMesh(World& world, const ChunkPosition& chunkPosition) {
     return meshes;
 }
 
-void Mesher::addFace(MeshData& mesh, World& world, glm::vec3 position, glm::ivec3 neighborPosition, FaceDirection direction, BlockType type) {
+void Mesher::addFace(MeshData& mesh, World& world, Chunk* chunk, const ChunkPosition& chunkPos, glm::ivec3 localPos, glm::ivec3 worldPos, glm::ivec3 neighborLocal, FaceDirection direction, BlockType type) {
     uint32_t baseIndex = static_cast<uint32_t>(mesh.vertices.size());
     const BlockData& data = BlockRegistry::Get(type);
     const BlockFaceTextures& textures = data.Textures;
 
-    uint8_t rawLight = world.GetSkyLight(neighborPosition.x, neighborPosition.y, neighborPosition.z);
+    uint8_t rawLight = sampleSkyLight(world, chunk, chunkPos, neighborLocal.x, neighborLocal.y, neighborLocal.z);
     float skyLight = static_cast<float>(rawLight);
 
-    // Vertices
     AtlasCoord atlasCoord = getDataForFace(textures, direction).Texture;
     glm::vec2 uvMin = atlasCoord.GetUVMin();
     glm::vec2 uvMax = atlasCoord.GetUVMax();
 
-    int bx = static_cast<int>(position.x);
-    int by = static_cast<int>(position.y);
-    int bz = static_cast<int>(position.z);
+    int lx = localPos.x, ly = localPos.y, lz = localPos.z;
+    float px = static_cast<float>(worldPos.x), py = static_cast<float>(worldPos.y), pz = static_cast<float>(worldPos.z);
+
     switch (direction) {
         case FaceDirection::Top: {
             glm::vec3 normal{0, 1, 0};
 
-            float ao0 = calculateAO(world, {bx-1, by+1, bz}, {bx, by+1, bz-1}, {bx-1, by+1, bz-1});
-            float ao1 = calculateAO(world, {bx-1, by+1, bz}, {bx, by+1, bz+1}, {bx-1, by+1, bz+1});
-            float ao2 = calculateAO(world, {bx+1, by+1, bz}, {bx, by+1, bz+1}, {bx+1, by+1, bz+1});
-            float ao3 = calculateAO(world, {bx+1, by+1, bz}, {bx, by+1, bz-1}, {bx+1, by+1, bz-1});
+            float ao0 = calculateAO(world, chunk, chunkPos, {lx-1, ly+1, lz}, {lx, ly+1, lz-1}, {lx-1, ly+1, lz-1});
+            float ao1 = calculateAO(world, chunk, chunkPos, {lx-1, ly+1, lz}, {lx, ly+1, lz+1}, {lx-1, ly+1, lz+1});
+            float ao2 = calculateAO(world, chunk, chunkPos, {lx+1, ly+1, lz}, {lx, ly+1, lz+1}, {lx+1, ly+1, lz+1});
+            float ao3 = calculateAO(world, chunk, chunkPos, {lx+1, ly+1, lz}, {lx, ly+1, lz-1}, {lx+1, ly+1, lz-1});
 
-            mesh.vertices.push_back({
-                {position.x, position.y + 1, position.z},
-                normal,
-                {uvMin.x, uvMin.y},
-                textures.Top.Color,
-                ao0,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x, position.y + 1, position.z + 1},
-                normal,
-                {uvMax.x, uvMin.y},
-                textures.Top.Color,
-                ao1,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x + 1, position.y + 1, position.z + 1},
-                normal,
-                {uvMax.x, uvMax.y},
-                textures.Top.Color,
-                ao2,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x + 1, position.y + 1, position.z},
-                normal,
-                {uvMin.x, uvMax.y},
-                textures.Top.Color,
-                ao3,
-                skyLight
-            });
-
+            mesh.vertices.push_back({{px, py+1, pz}, normal, {uvMin.x, uvMin.y}, textures.Top.Color, ao0, skyLight});
+            mesh.vertices.push_back({{px, py+1, pz+1}, normal, {uvMax.x, uvMin.y}, textures.Top.Color, ao1, skyLight});
+            mesh.vertices.push_back({{px+1, py+1, pz+1}, normal, {uvMax.x, uvMax.y}, textures.Top.Color, ao2, skyLight});
+            mesh.vertices.push_back({{px+1, py+1, pz}, normal, {uvMin.x, uvMax.y}, textures.Top.Color, ao3, skyLight});
             break;
         };
         case FaceDirection::Bottom: {
             glm::vec3 normal{0, -1, 0};
 
-            float ao0 = calculateAO(world, {bx-1, by-1, bz}, {bx, by-1, bz+1}, {bx-1, by-1, bz+1});
-            float ao1 = calculateAO(world, {bx-1, by-1, bz}, {bx, by-1, bz-1}, {bx-1, by-1, bz-1});
-            float ao2 = calculateAO(world, {bx+1, by-1, bz}, {bx, by-1, bz-1}, {bx+1, by-1, bz-1});
-            float ao3 = calculateAO(world, {bx+1, by-1, bz}, {bx, by-1, bz+1}, {bx+1, by-1, bz+1});
+            float ao0 = calculateAO(world, chunk, chunkPos, {lx-1, ly-1, lz}, {lx, ly-1, lz+1}, {lx-1, ly-1, lz+1});
+            float ao1 = calculateAO(world, chunk, chunkPos, {lx-1, ly-1, lz}, {lx, ly-1, lz-1}, {lx-1, ly-1, lz-1});
+            float ao2 = calculateAO(world, chunk, chunkPos, {lx+1, ly-1, lz}, {lx, ly-1, lz-1}, {lx+1, ly-1, lz-1});
+            float ao3 = calculateAO(world, chunk, chunkPos, {lx+1, ly-1, lz}, {lx, ly-1, lz+1}, {lx+1, ly-1, lz+1});
 
-            mesh.vertices.push_back({
-                {position.x, position.y, position.z + 1},
-                normal,
-                {uvMin.x, uvMin.y},
-                textures.Bottom.Color,
-                ao0,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x, position.y, position.z},
-                normal,
-                {uvMax.x, uvMin.y},
-                textures.Bottom.Color,
-                ao1,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x + 1, position.y, position.z},
-                normal,
-                {uvMax.x, uvMax.y},
-                textures.Bottom.Color,
-                ao2,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x + 1, position.y, position.z + 1},
-                normal,
-                {uvMin.x, uvMax.y},
-                textures.Bottom.Color,
-                ao3,
-                skyLight
-            });
-
+            mesh.vertices.push_back({{px, py, pz+1}, normal, {uvMin.x, uvMin.y}, textures.Bottom.Color, ao0, skyLight});
+            mesh.vertices.push_back({{px, py, pz}, normal, {uvMax.x, uvMin.y}, textures.Bottom.Color, ao1, skyLight});
+            mesh.vertices.push_back({{px+1, py, pz}, normal, {uvMax.x, uvMax.y}, textures.Bottom.Color, ao2, skyLight});
+            mesh.vertices.push_back({{px+1, py, pz+1}, normal, {uvMin.x, uvMax.y}, textures.Bottom.Color, ao3, skyLight});
             break;
         };
         case FaceDirection::Front: {
             glm::vec3 normal{0, 0, 1};
 
-            float ao0 = calculateAO(world, {bx-1, by, bz+1}, {bx, by-1, bz+1}, {bx-1, by-1, bz+1});
-            float ao1 = calculateAO(world, {bx+1, by, bz+1}, {bx, by-1, bz+1}, {bx+1, by-1, bz+1});
-            float ao2 = calculateAO(world, {bx+1, by, bz+1}, {bx, by+1, bz+1}, {bx+1, by+1, bz+1});
-            float ao3 = calculateAO(world, {bx-1, by, bz+1}, {bx, by+1, bz+1}, {bx-1, by+1, bz+1});
+            float ao0 = calculateAO(world, chunk, chunkPos, {lx-1, ly, lz+1}, {lx, ly-1, lz+1}, {lx-1, ly-1, lz+1});
+            float ao1 = calculateAO(world, chunk, chunkPos, {lx+1, ly, lz+1}, {lx, ly-1, lz+1}, {lx+1, ly-1, lz+1});
+            float ao2 = calculateAO(world, chunk, chunkPos, {lx+1, ly, lz+1}, {lx, ly+1, lz+1}, {lx+1, ly+1, lz+1});
+            float ao3 = calculateAO(world, chunk, chunkPos, {lx-1, ly, lz+1}, {lx, ly+1, lz+1}, {lx-1, ly+1, lz+1});
 
-            mesh.vertices.push_back({
-                {position.x, position.y, position.z + 1},
-                normal,
-                {uvMin.x, uvMin.y},
-                textures.Side.Color,
-                ao0,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x + 1, position.y, position.z + 1},
-                normal,
-                {uvMax.x, uvMin.y},
-                textures.Side.Color,
-                ao1,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x + 1, position.y + 1, position.z + 1},
-                normal,
-                {uvMax.x, uvMax.y},
-                textures.Side.Color,
-                ao2,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x, position.y + 1, position.z + 1},
-                normal,
-                {uvMin.x, uvMax.y},
-                textures.Side.Color,
-                ao3,
-                skyLight
-            });
-
+            mesh.vertices.push_back({{px, py, pz+1}, normal, {uvMin.x, uvMin.y}, textures.Side.Color, ao0, skyLight});
+            mesh.vertices.push_back({{px+1, py, pz+1}, normal, {uvMax.x, uvMin.y}, textures.Side.Color, ao1, skyLight});
+            mesh.vertices.push_back({{px+1, py+1, pz+1}, normal, {uvMax.x, uvMax.y}, textures.Side.Color, ao2, skyLight});
+            mesh.vertices.push_back({{px, py+1, pz+1}, normal, {uvMin.x, uvMax.y}, textures.Side.Color, ao3, skyLight});
             break;
         };
         case FaceDirection::Back: {
             glm::vec3 normal{0, 0, -1};
 
-            float ao0 = calculateAO(world, {bx+1, by, bz-1}, {bx, by-1, bz-1}, {bx+1, by-1, bz-1});
-            float ao1 = calculateAO(world, {bx-1, by, bz-1}, {bx, by-1, bz-1}, {bx-1, by-1, bz-1});
-            float ao2 = calculateAO(world, {bx-1, by, bz-1}, {bx, by+1, bz-1}, {bx-1, by+1, bz-1});
-            float ao3 = calculateAO(world, {bx+1, by, bz-1}, {bx, by+1, bz-1}, {bx+1, by+1, bz-1});
+            float ao0 = calculateAO(world, chunk, chunkPos, {lx+1, ly, lz-1}, {lx, ly-1, lz-1}, {lx+1, ly-1, lz-1});
+            float ao1 = calculateAO(world, chunk, chunkPos, {lx-1, ly, lz-1}, {lx, ly-1, lz-1}, {lx-1, ly-1, lz-1});
+            float ao2 = calculateAO(world, chunk, chunkPos, {lx-1, ly, lz-1}, {lx, ly+1, lz-1}, {lx-1, ly+1, lz-1});
+            float ao3 = calculateAO(world, chunk, chunkPos, {lx+1, ly, lz-1}, {lx, ly+1, lz-1}, {lx+1, ly+1, lz-1});
 
-            mesh.vertices.push_back({
-                {position.x + 1, position.y, position.z},
-                normal,
-                {uvMin.x, uvMin.y},
-                textures.Side.Color,
-                ao0,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x, position.y, position.z},
-                normal,
-                {uvMax.x, uvMin.y},
-                textures.Side.Color,
-                ao1,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x, position.y + 1, position.z},
-                normal,
-                {uvMax.x, uvMax.y},
-                textures.Side.Color,
-                ao2,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x + 1, position.y + 1, position.z},
-                normal,
-                {uvMin.x, uvMax.y},
-                textures.Side.Color,
-                ao3,
-                skyLight
-            });
-
+            mesh.vertices.push_back({{px+1, py, pz}, normal, {uvMin.x, uvMin.y}, textures.Side.Color, ao0, skyLight});
+            mesh.vertices.push_back({{px, py, pz}, normal, {uvMax.x, uvMin.y}, textures.Side.Color, ao1, skyLight});
+            mesh.vertices.push_back({{px, py+1, pz}, normal, {uvMax.x, uvMax.y}, textures.Side.Color, ao2, skyLight});
+            mesh.vertices.push_back({{px+1, py+1, pz}, normal, {uvMin.x, uvMax.y}, textures.Side.Color, ao3, skyLight});
             break;
         };
         case FaceDirection::Right: {
             glm::vec3 normal{1, 0, 0};
 
-            float ao0 = calculateAO(world, {bx+1, by, bz+1}, {bx+1, by-1, bz}, {bx+1, by-1, bz+1});
-            float ao1 = calculateAO(world, {bx+1, by, bz-1}, {bx+1, by-1, bz}, {bx+1, by-1, bz-1});
-            float ao2 = calculateAO(world, {bx+1, by, bz-1}, {bx+1, by+1, bz}, {bx+1, by+1, bz-1});
-            float ao3 = calculateAO(world, {bx+1, by, bz+1}, {bx+1, by+1, bz}, {bx+1, by+1, bz+1});
+            float ao0 = calculateAO(world, chunk, chunkPos, {lx+1, ly, lz+1}, {lx+1, ly-1, lz}, {lx+1, ly-1, lz+1});
+            float ao1 = calculateAO(world, chunk, chunkPos, {lx+1, ly, lz-1}, {lx+1, ly-1, lz}, {lx+1, ly-1, lz-1});
+            float ao2 = calculateAO(world, chunk, chunkPos, {lx+1, ly, lz-1}, {lx+1, ly+1, lz}, {lx+1, ly+1, lz-1});
+            float ao3 = calculateAO(world, chunk, chunkPos, {lx+1, ly, lz+1}, {lx+1, ly+1, lz}, {lx+1, ly+1, lz+1});
 
-            mesh.vertices.push_back({
-                {position.x + 1, position.y, position.z + 1},
-                normal,
-                {uvMin.x, uvMin.y},
-                textures.Side.Color,
-                ao0,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x + 1, position.y, position.z},
-                normal,
-                {uvMax.x, uvMin.y},
-                textures.Side.Color,
-                ao1,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x + 1, position.y + 1, position.z},
-                normal,
-                {uvMax.x, uvMax.y},
-                textures.Side.Color,
-                ao2,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x + 1, position.y + 1, position.z + 1},
-                normal,
-                {uvMin.x, uvMax.y},
-                textures.Side.Color,
-                ao3,
-                skyLight
-            });
-
+            mesh.vertices.push_back({{px+1, py, pz+1}, normal, {uvMin.x, uvMin.y}, textures.Side.Color, ao0, skyLight});
+            mesh.vertices.push_back({{px+1, py, pz}, normal, {uvMax.x, uvMin.y}, textures.Side.Color, ao1, skyLight});
+            mesh.vertices.push_back({{px+1, py+1, pz}, normal, {uvMax.x, uvMax.y}, textures.Side.Color, ao2, skyLight});
+            mesh.vertices.push_back({{px+1, py+1, pz+1}, normal, {uvMin.x, uvMax.y}, textures.Side.Color, ao3, skyLight});
             break;
         };
         case FaceDirection::Left: {
             glm::vec3 normal{-1, 0, 0};
 
-            float ao0 = calculateAO(world, {bx-1, by, bz-1}, {bx-1, by-1, bz}, {bx-1, by-1, bz-1});
-            float ao1 = calculateAO(world, {bx-1, by, bz+1}, {bx-1, by-1, bz}, {bx-1, by-1, bz+1});
-            float ao2 = calculateAO(world, {bx-1, by, bz+1}, {bx-1, by+1, bz}, {bx-1, by+1, bz+1});
-            float ao3 = calculateAO(world, {bx-1, by, bz-1}, {bx-1, by+1, bz}, {bx-1, by+1, bz-1});
+            float ao0 = calculateAO(world, chunk, chunkPos, {lx-1, ly, lz-1}, {lx-1, ly-1, lz}, {lx-1, ly-1, lz-1});
+            float ao1 = calculateAO(world, chunk, chunkPos, {lx-1, ly, lz+1}, {lx-1, ly-1, lz}, {lx-1, ly-1, lz+1});
+            float ao2 = calculateAO(world, chunk, chunkPos, {lx-1, ly, lz+1}, {lx-1, ly+1, lz}, {lx-1, ly+1, lz+1});
+            float ao3 = calculateAO(world, chunk, chunkPos, {lx-1, ly, lz-1}, {lx-1, ly+1, lz}, {lx-1, ly+1, lz-1});
 
-            mesh.vertices.push_back({
-                {position.x, position.y, position.z},
-                normal,
-                {uvMin.x, uvMin.y},
-                textures.Side.Color,
-                ao0,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x, position.y, position.z + 1},
-                normal,
-                {uvMax.x, uvMin.y},
-                textures.Side.Color,
-                ao1,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x, position.y + 1, position.z + 1},
-                normal,
-                {uvMax.x, uvMax.y},
-                textures.Side.Color,
-                ao2,
-                skyLight
-            });
-
-            mesh.vertices.push_back({
-                {position.x, position.y + 1, position.z},
-                normal,
-                {uvMin.x, uvMax.y},
-                textures.Side.Color,
-                ao3,
-                skyLight
-            });
-
+            mesh.vertices.push_back({{px, py, pz}, normal, {uvMin.x, uvMin.y}, textures.Side.Color, ao0, skyLight});
+            mesh.vertices.push_back({{px, py, pz+1}, normal, {uvMax.x, uvMin.y}, textures.Side.Color, ao1, skyLight});
+            mesh.vertices.push_back({{px, py+1, pz+1}, normal, {uvMax.x, uvMax.y}, textures.Side.Color, ao2, skyLight});
+            mesh.vertices.push_back({{px, py+1, pz}, normal, {uvMin.x, uvMax.y}, textures.Side.Color, ao3, skyLight});
             break;
         };
     }
 
-    // Indices
     mesh.indices.push_back(baseIndex + 0);
     mesh.indices.push_back(baseIndex + 1);
     mesh.indices.push_back(baseIndex + 2);
@@ -372,7 +204,7 @@ void Mesher::addFace(MeshData& mesh, World& world, glm::vec3 position, glm::ivec
     mesh.indices.push_back(baseIndex + 3);
 }
 
-void Mesher::addCross(MeshData& mesh, World& world, glm::vec3 position, BlockType type) {
+void Mesher::addCross(MeshData& mesh, World& world, Chunk* chunk, const ChunkPosition& chunkPos, glm::ivec3 localPos, glm::ivec3 worldPos, BlockType type) {
     uint32_t baseIndex = static_cast<uint32_t>(mesh.vertices.size());
 
     const BlockData& data = BlockRegistry::Get(type);
@@ -381,102 +213,29 @@ void Mesher::addCross(MeshData& mesh, World& world, glm::vec3 position, BlockTyp
     float receivesDiffuse = data.Render == RenderType::Cross ? 0.0f : 1.0f;
 
     AtlasCoord atlas = textures.Top.Texture;
-
     glm::vec2 uvMin = atlas.GetUVMin();
     glm::vec2 uvMax = atlas.GetUVMax();
 
-    uint8_t rawLight = world.GetSkyLight(position.x, position.y, position.z);
+    uint8_t rawLight = chunk->GetSkyLight(localPos.x, localPos.y, localPos.z); // sempre local, é o próprio bloco
     float skyLight = static_cast<float>(rawLight);
 
     float ao = 3.0f;
+    float px = static_cast<float>(worldPos.x), py = static_cast<float>(worldPos.y), pz = static_cast<float>(worldPos.z);
 
-    // Blade 01
-    glm::vec3 normal1 = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 normal1{0.0f, 1.0f, 0.0f};
 
-    mesh.vertices.push_back({
-        {position.x, position.y, position.z},
-        normal1,
-        {uvMin.x, uvMin.y},
-        textures.Top.Color,
-        ao,
-        skyLight,
-        receivesDiffuse
-    });
+    mesh.vertices.push_back({{px, py, pz}, normal1, {uvMin.x, uvMin.y}, textures.Top.Color, ao, skyLight, receivesDiffuse});
+    mesh.vertices.push_back({{px+1, py, pz+1}, normal1, {uvMax.x, uvMin.y}, textures.Top.Color, ao, skyLight, receivesDiffuse});
+    mesh.vertices.push_back({{px+1, py+1, pz+1}, normal1, {uvMax.x, uvMax.y}, textures.Top.Color, ao, skyLight, receivesDiffuse});
+    mesh.vertices.push_back({{px, py+1, pz}, normal1, {uvMin.x, uvMax.y}, textures.Top.Color, ao, skyLight, receivesDiffuse});
 
-    mesh.vertices.push_back({
-        {position.x + 1, position.y, position.z + 1},
-        normal1,
-        {uvMax.x, uvMin.y},
-        textures.Top.Color,
-        ao,
-        skyLight,
-        receivesDiffuse
-    });
+    glm::vec3 normal2{0.0f, 1.0f, 0.0f};
 
-    mesh.vertices.push_back({
-        {position.x + 1, position.y + 1, position.z + 1},
-        normal1,
-        {uvMax.x, uvMax.y},
-        textures.Top.Color,
-        ao,
-        skyLight,
-        receivesDiffuse
-    });
+    mesh.vertices.push_back({{px+1, py, pz}, normal2, {uvMin.x, uvMin.y}, textures.Top.Color, ao, skyLight, receivesDiffuse});
+    mesh.vertices.push_back({{px, py, pz+1}, normal2, {uvMax.x, uvMin.y}, textures.Top.Color, ao, skyLight, receivesDiffuse});
+    mesh.vertices.push_back({{px, py+1, pz+1}, normal2, {uvMax.x, uvMax.y}, textures.Top.Color, ao, skyLight, receivesDiffuse});
+    mesh.vertices.push_back({{px+1, py+1, pz}, normal2, {uvMin.x, uvMax.y}, textures.Top.Color, ao, skyLight, receivesDiffuse});
 
-    mesh.vertices.push_back({
-        {position.x, position.y + 1, position.z},
-        normal1,
-        {uvMin.x, uvMax.y},
-        textures.Top.Color,
-        ao,
-        skyLight,
-        receivesDiffuse
-    });
-
-    // Blade 02
-    glm::vec3 normal2 = glm::vec3(0.0f, 1.0f, 0.0f);
-
-    mesh.vertices.push_back({
-        {position.x + 1, position.y, position.z},
-        normal2,
-        {uvMin.x, uvMin.y},
-        textures.Top.Color,
-        ao,
-        skyLight,
-        receivesDiffuse
-    });
-
-    mesh.vertices.push_back({
-        {position.x, position.y, position.z + 1},
-        normal2,
-        {uvMax.x, uvMin.y},
-        textures.Top.Color,
-        ao,
-        skyLight,
-        receivesDiffuse
-    });
-
-    mesh.vertices.push_back({
-        {position.x, position.y + 1, position.z + 1},
-        normal2,
-        {uvMax.x, uvMax.y},
-        textures.Top.Color,
-        ao,
-        skyLight,
-        receivesDiffuse
-    });
-
-    mesh.vertices.push_back({
-        {position.x + 1, position.y + 1, position.z},
-        normal2,
-        {uvMin.x, uvMax.y},
-        textures.Top.Color,
-        ao,
-        skyLight,
-        receivesDiffuse
-    });
-
-    // Blade 01
     mesh.indices.push_back(baseIndex + 0);
     mesh.indices.push_back(baseIndex + 1);
     mesh.indices.push_back(baseIndex + 2);
@@ -491,7 +250,6 @@ void Mesher::addCross(MeshData& mesh, World& world, glm::vec3 position, BlockTyp
     mesh.indices.push_back(baseIndex + 2);
     mesh.indices.push_back(baseIndex + 0);
 
-    // Blade 02
     mesh.indices.push_back(baseIndex + 4);
     mesh.indices.push_back(baseIndex + 5);
     mesh.indices.push_back(baseIndex + 6);
@@ -518,13 +276,6 @@ FaceData Mesher::getDataForFace(const BlockFaceTextures& textures, FaceDirection
     }
 }
 
-bool Mesher::isOccluder(World& world, glm::ivec3 pos) {
-    BlockType block = world.GetBlock(pos.x, pos.y, pos.z);
-
-    if (block == BlockType::Air) return false;
-    return BlockRegistry::Get(block).BlocksLight;
-}
-
 bool Mesher::shouldRenderFace(BlockType current, BlockType neighbor) {
     const BlockData& currentData = BlockRegistry::Get(current);
     const BlockData& neighborData = BlockRegistry::Get(neighbor);
@@ -536,10 +287,10 @@ bool Mesher::shouldRenderFace(BlockType current, BlockType neighbor) {
     return true;
 }
 
-float Mesher::calculateAO(World& world, glm::ivec3 side1, glm::ivec3 side2, glm::ivec3 corner) {
-    bool s1 = isOccluder(world, side1);
-    bool s2 = isOccluder(world, side2);
-    bool c = isOccluder(world, corner);
+float Mesher::calculateAO(World& world, Chunk* chunk, const ChunkPosition& chunkPos, glm::ivec3 side1, glm::ivec3 side2, glm::ivec3 corner) {
+    bool s1 = sampleOccluder(world, chunk, chunkPos, side1.x, side1.y, side1.z);
+    bool s2 = sampleOccluder(world, chunk, chunkPos, side2.x, side2.y, side2.z);
+    bool c  = sampleOccluder(world, chunk, chunkPos, corner.x, corner.y, corner.z);
 
     if (s1 && s2) return 0.0f;
     return 3.0f - static_cast<float>(s1) - static_cast<float>(s2) - static_cast<float>(c);

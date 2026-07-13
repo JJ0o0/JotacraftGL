@@ -46,6 +46,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     "src/world/outline_renderer.cpp"
     "src/world/world_interaction.cpp"
     "src/world/block_registry.cpp"
+    "src/world/noise.cpp"
 
     "src/external/gl.c"
     "src/external/stb_image.cpp"
