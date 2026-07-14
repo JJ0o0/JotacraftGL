@@ -12,6 +12,10 @@ int Application::Run() {
     Game game(*m_window);
     game.Initialize();
 
+    double fpsTimer = 0.0;
+    int frames = 0;
+    float fps = 0.0f;
+
     float lastTime = glfwGetTime();
     while (!m_window->ShouldClose()) {
         float currTime = glfwGetTime();
@@ -19,6 +23,15 @@ int Application::Run() {
         lastTime = currTime;
 
         deltaTime = std::min(deltaTime, 0.05f);
+
+        fpsTimer += deltaTime;
+        frames++;
+
+        if (fpsTimer >= 1.0) {
+            fps = frames / fpsTimer;
+            frames = 0;
+            fpsTimer = 0.0;
+        }
 
         m_window->PollEvents();
 
@@ -30,7 +43,7 @@ int Application::Run() {
         game.Render();
 
         m_imgui->Begin();
-            game.RenderDebugGUI();
+            game.RenderDebugGUI(fps);
         m_imgui->End();
 
         m_window->SwapBuffers();

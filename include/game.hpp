@@ -14,7 +14,7 @@ class Game {
         void Initialize();
         void Update(float deltatime);
         void Render();
-        void RenderDebugGUI();
+        void RenderDebugGUI(float fps);
     private:
         Window& m_window;
         Player m_player{};

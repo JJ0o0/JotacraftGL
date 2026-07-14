@@ -2,13 +2,9 @@
 #include <world/block_registry.hpp>
 #include <math.hpp>
 #include <cmath>
-#include <chrono>
-#include <iostream>
 #include <algorithm>
 
 WorldUpdateResult World::Update(const glm::vec3& playerPosition) {
-    auto start = std::chrono::high_resolution_clock::now();
-
     ChunkPosition playerChunk = WorldToChunkPosition(
         static_cast<int>(std::floor(playerPosition.x)),
         static_cast<int>(std::floor(playerPosition.z))
@@ -47,28 +43,12 @@ WorldUpdateResult World::Update(const glm::vec3& playerPosition) {
         result.Created.push_back(pos);
     }
 
-    auto end = std::chrono::high_resolution_clock::now();
-
-    std::cout
-        << "World Update: "
-        << std::chrono::duration<float, std::milli>(end - start).count()
-        << " ms\n";
-
     return result;
 }
 
 void World::GenerateChunk(const ChunkPosition& position) {  
-    auto start = std::chrono::high_resolution_clock::now();
-  
     Chunk& chunk = m_chunks[position];
     chunk.GenerateTerrain(m_noise, position.x, position.z);
-
-    auto end = std::chrono::high_resolution_clock::now();
-
-    std::cout
-        << "GenerateChunk: "
-        << std::chrono::duration<float, std::milli>(end-start).count()
-        << " ms\n";
 }
 
 void World::RemoveChunk(const ChunkPosition& pos) { m_chunks.erase(pos); }

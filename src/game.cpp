@@ -1,5 +1,7 @@
 #include <game.hpp>
 
+#include <platform/system_info.hpp>
+
 #include <world/block_registry.hpp>
 #include <world/world_interaction.hpp>
 
@@ -10,8 +12,6 @@
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <algorithm>
-#include <chrono>
-#include <iostream>
 
 Game::Game(Window& window) 
     : m_window(window) {}
@@ -29,6 +29,7 @@ void Game::Initialize() {
                 m_window.ToggleMouseLock();
 
                 break;
+            case GLFW_KEY_V: m_window.ToggleVSync(); break;
 
             case GLFW_KEY_1: m_selectedSlot = 0; break;
             case GLFW_KEY_2: m_selectedSlot = 1; break;
@@ -92,10 +93,7 @@ void Game::Update(float deltatime) {
 }
 
 void Game::Render() {
-    auto start = std::chrono::high_resolution_clock::now();
     m_worldRenderer.Render(m_player);
-    auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "Render: " << std::chrono::duration<float, std::milli>(end-start).count() << " ms\n";
     m_outlineRenderer.Render(m_player);
 
     m_guiRenderer.Render(
@@ -106,11 +104,11 @@ void Game::Render() {
     );
 }
 
-void Game::RenderDebugGUI() {
+void Game::RenderDebugGUI(float fps) {
     if (!m_showDebug) return;
     
     ImGui::SetNextWindowPos({15, 15});
-    ImGui::SetNextWindowSize({300, 130});
+    ImGui::SetNextWindowSize({300, 270});
     ImGui::Begin("Debug", nullptr,
         ImGuiWindowFlags_NoMove | 
         ImGuiWindowFlags_NoCollapse |
@@ -119,10 +117,26 @@ void Game::RenderDebugGUI() {
 
     auto pos = m_player.GetPosition();
     auto vel = m_player.GetVelocity();
+    auto memory = SystemInfo::GetMemoryUsage() / (1024.0f * 1024.0f);
 
-    ImGui::Text("F3 to open or close");
-    ImGui::Text("Player Position: x %.2f, y %.2f, z %.2f", pos.x, pos.y, pos.z);
-    ImGui::Text("Player Velocity: x %.2f, y %.2f, z %.2f", vel.x, vel.y, vel.z);
+    ImGui::Text("F3 to open or close\n\n");
+
+    ImGui::Text("Performance");
+    ImGui::Separator();
+
+    ImGui::Text("FPS: %.0f", fps);
+    ImGui::Text("Frame Time: %.2f ms", 1000.0f / fps);
+    ImGui::Text("VSync: %s", m_window.GetProperties().VSync ? "On" : "Off");
+    ImGui::Text("Memory: %.2fmb", memory);
+
+    ImGui::Text("\nPlayer");
+    ImGui::Separator();
+
+    ImGui::Text("Position:");
+    ImGui::InputFloat3("##Position", &pos.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+
+    ImGui::Text("Velocity:");
+    ImGui::InputFloat3("##Velocity", &vel.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
 
     ImGui::End();
 }

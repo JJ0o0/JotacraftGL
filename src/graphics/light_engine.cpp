@@ -145,8 +145,6 @@ void LightEngine::propagateSkyLight(World& world, std::queue<LightNode>& queue) 
             }
         }
     }
-
-    std::cout << "Light nodes processed: " << processed << "\n";
 }
 
 void LightEngine::removeSkyLight(World& world, std::queue<LightRemovalNode>& removalQueue, std::queue<LightNode>& relightQueue) {

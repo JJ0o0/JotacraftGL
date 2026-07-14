@@ -84,7 +84,9 @@ Window::Window(const WindowProperties& properties)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     glViewport(0, 0, m_properties.Width, m_properties.Height);
-    glfwSwapInterval(1);
+    glfwSwapInterval(m_properties.VSync);
+
+    SetIcon(m_properties.IconPath);
 
     stbi_set_flip_vertically_on_load(true);
 
@@ -101,4 +103,37 @@ Window::~Window() {
 void Window::ToggleMouseLock() {
     if (!IsMouseLocked()) glfwSetInputMode(m_handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     else glfwSetInputMode(m_handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+}
+
+void Window::ToggleVSync() {
+    m_properties.VSync = !m_properties.VSync;
+    glfwSwapInterval(m_properties.VSync);
+}
+
+void Window::SetTitle(const std::string& title) {
+    glfwSetWindowTitle(m_handle, title.c_str());
+    m_properties.Title = title;
+}
+
+void Window::SetIcon(const std::string& path) {
+    if (path.empty()) {
+        glfwSetWindowIcon(m_handle, 0, nullptr);
+        m_properties.IconPath.clear();
+        return;
+    }
+
+    GLFWimage icon{};
+
+    int channels = 0;
+    icon.pixels = stbi_load(path.c_str(), &icon.width, &icon.height, &channels, 4);
+
+    if (!icon.pixels) {
+        std::cout << "Failed to load window icon at \"" << path << "\": " << (stbi_failure_reason() ? stbi_failure_reason() : "Unknown") << "\n";
+        return;
+    }
+
+    glfwSetWindowIcon(m_handle, 1, &icon);
+    stbi_image_free(icon.pixels);
+
+    m_properties.IconPath = path;
 }

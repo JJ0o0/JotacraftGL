@@ -27,6 +27,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     "src/game.cpp"
 
     "src/platform/window.cpp"
+    "src/platform/system_info.cpp"
     "src/platform/imgui_handler.cpp"
 
     "src/graphics/mesh.cpp"

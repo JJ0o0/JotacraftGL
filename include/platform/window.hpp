@@ -8,8 +8,10 @@
 
 struct WindowProperties {
     std::string Title = "Window";
+    std::string IconPath = "assets/icon.png";
     uint32_t Width = 800;
     uint32_t Height = 600;
+    bool VSync = true;
 };
 
 class Window {
@@ -24,6 +26,10 @@ class Window {
 
         bool IsMouseLocked() const { return glfwGetInputMode(m_handle, GLFW_CURSOR) == GLFW_CURSOR_DISABLED; }
         void ToggleMouseLock();
+        void ToggleVSync();
+
+        void SetTitle(const std::string& title);
+        void SetIcon(const std::string& path);
 
         std::function<void(int)> WasKeyPressed;
         std::function<void(int)> WasMouseButtonPressed;
