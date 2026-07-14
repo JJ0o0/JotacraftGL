@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(
     Jotacraft
+    VERSION 0.1.0
     LANGUAGES C CXX
 )
 
@@ -58,6 +59,15 @@ target_include_directories(${CMAKE_PROJECT_NAME}
         "./include"
         "./external"
 )
+
+if(MINGW)
+    target_link_options(${CMAKE_PROJECT_NAME} 
+        PRIVATE
+            -static
+            -static-libgcc
+            -static-libstdc++
+    )
+endif()
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
     PRIVATE

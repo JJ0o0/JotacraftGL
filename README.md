@@ -72,6 +72,10 @@ cd build
 ./Jotacraft
 ```
 
+ou execute os scripts em `scripts/`.
+
+> OBS: Para compilar pra sua plataforma, tenha certeza que as dependências necessária estejam instaladas no seu sistema (ex: GLFW e GLM).
+
 ---
 
 ## Controles
