@@ -74,7 +74,7 @@ cd build
 
 ou execute os scripts em `scripts/`.
 
-> OBS: Para compilar pra sua plataforma, tenha certeza que as dependências necessária estejam instaladas no seu sistema (ex: GLFW e GLM).
+> OBS: Para compilar pra sua plataforma, tenha certeza que as dependências necessárias estejam instaladas no seu sistema (ex: GLFW e GLM).
 
 ---
 
