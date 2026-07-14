@@ -83,6 +83,7 @@ ou execute os scripts em `scripts/`.
 | Tecla | Ação |
 |------|--------|
 | W A S D | Movimentação |
+| Left Shift | Correr |
 | Space | Pular |
 | Mouse | Olhar |
 | Left Click | Quebrar Bloco |
